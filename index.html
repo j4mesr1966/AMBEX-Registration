@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>AMBEX Registration</title>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --primary: #06C755;          /* LINE green */
+      --primary-dark: #05a548;
+      --bg: #f7f8fa;
+      --card: #ffffff;
+      --text: #111;
+      --muted: #666;
+      --border: #e5e7eb;
+      --danger: #e11d48;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 16px;
+      padding-bottom: 100px;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .card h2 {
+      font-size: 1.05rem;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .required::after {
+      content: " *";
+      color: var(--danger);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      margin-bottom: 14px;
+      background: #fff;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.15);
+    }
+
+    textarea { min-height: 80px; resize: vertical; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .age-badge {
+      display: inline-block;
+      background: #e8f5e9;
+      color: #2e7d32;
+      font-size: 0.85rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+
+    .warning {
+      background: #fff3cd;
+      color: #856404;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 14px;
+    }
+
+    .error {
+      background: #fef2f2;
+      color: var(--danger);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:active {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #333;
+      margin-top: 10px;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .footer-actions {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      padding: 12px 16px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+      display: flex;
+      gap: 10px;
+    }
+
+    .footer-actions .btn {
+      flex: 1;
+    }
+
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .success-screen h2 {
+      font-size: 1.5rem;
+      margin: 16px 0 8px;
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container" id="form-container">
+    <h1>AMBEX Registration</h1>
+    <p class="subtitle">Please fill in English characters only</p>
+
+    <div id="global-error" class="error"></div>
+
+    <!-- 1. Core Identity -->
+    <div class="card">
+      <h2>1. Core Identity</h2>
+
+      <label class="required">Surname / Family Name</label>
+      <input type="text" id="surname" placeholder="e.g. WANG" autocomplete="family-name" />
+
+      <label class="required">First Name</label>
+      <input type="text" id="first_name" placeholder="e.g. WEI" autocomplete="given-name" />
+
+      <label class="required">Date of Birth</label>
+      <input type="date" id="date_of_birth" />
+
+      <div class="row">
+        <div>
+          <label>Passport Number</label>
+          <input type="text" id="passport_number" inputmode="numeric" placeholder="Numbers only" />
+        </div>
+        <div>
+          <label class="required">Gender</label>
+          <select id="gender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Nationality</label>
+      <input type="text" id="nationality" value="Taiwanese" />
+    </div>
+
+    <!-- 2. Course & Trip -->
+    <div class="card">
+      <h2>2. Course & Trip</h2>
+
+      <div id="age-display" class="age-badge">Age on 6 Jul 2026: —</div>
+      <div id="age-warning" class="warning hidden"></div>
+
+      <label class="required">Course Type</label>
+      <select id="course_type">
+        <option value="">Select course...</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label class="required">Start Date</label>
+          <input type="date" id="course_start_date" value="2026-07-06" />
+        </div>
+        <div>
+          <label class="required">Duration (weeks)</label>
+          <input type="number" id="duration_weeks" min="1" max="12" value="4" />
+        </div>
+      </div>
+
+      <label>Course End Date</label>
+      <input type="date" id="course_end_date" readonly />
+    </div>
+
+    <!-- 3. Medical -->
+    <div class="card">
+      <h2>3. Medical & Dietary</h2>
+      <label>Allergies / Special requirements</label>
+      <textarea id="allergies" placeholder="Leave blank if none"></textarea>
+    </div>
+
+    <!-- 4. Address -->
+    <div class="card">
+      <h2>4. Home Address</h2>
+      <label class="required">Address (English characters only)</label>
+      <textarea id="home_address_english" placeholder="Full address in English"></textarea>
+    </div>
+
+    <!-- 5. Guardian -->
+    <div class="card">
+      <h2>5. Parent / Guardian</h2>
+
+      <label class="required">Guardian Full Name</label>
+      <input type="text" id="guardian_name" />
+
+      <label class="required">Mobile Phone</label>
+      <input type="tel" id="guardian_tel" placeholder="+886912345678" />
+
+      <label class="required">Email</label>
+      <input type="email" id="guardian_email" />
+
+      <label>LINE ID</label>
+      <input type="text" id="guardian_line_id" />
+
+      <label class="required">Can guardian speak English?</label>
+      <select id="guardian_speaks_english">
+        <option value="YES">YES</option>
+        <option value="NO">NO</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Success Screen -->
+  <div class="success-screen" id="success-screen">
+    <div style="font-size: 3rem;">✅</div>
+    <h2>Registration Submitted!</h2>
+    <p>Thank you. You can safely close this window.</p>
+  </div>
+
+  <!-- Footer buttons -->
+  <div class="footer-actions" id="footer-actions">
+    <button class="btn btn-secondary" id="btn-draft">Save Draft</button>
+    <button class="btn btn-primary" id="btn-submit">Submit Application</button>
+  </div>
+
+  <script>
+    // ==========================================
+    // CONFIG – REPLACE THESE THREE VALUES
+    // ==========================================
+    const SUPABASE_URL = "https://bwhkccfwzsvjtsaqvhyy.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_LdjLR-FIesLKwuqtQzHDpg_C-OIdGgg";
+    const LIFF_ID = "YOUR_LIFF_ID";
+
+    // ==========================================
+    // INIT
+    // ==========================================
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const TRIP_START = new Date("2026-07-06");
+
+    let lineUserId = null;
+
+    // ==========================================
+    // LIFF
+    // ==========================================
+    async function initLiff() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+        const profile = await liff.getProfile();
+        lineUserId = profile.userId;
+        // Optional: pre-fill name if you want
+        // document.getElementById("first_name").value = profile.displayName;
+      } catch (err) {
+        console.log("LIFF init failed (probably running outside LINE)", err);
+      }
+    }
+
+    // ==========================================
+    // AGE & COURSE LOGIC
+    // ==========================================
+    function calculateAge(dob) {
+      if (!dob) return null;
+      const born = new Date(dob);
+      let age = TRIP_START.getFullYear() - born.getFullYear();
+      const m = TRIP_START.getMonth() - born.getMonth();
+      if (m < 0 || (m === 0 && TRIP_START.getDate() < born.getDate())) {
+        age--;
+      }
+      return age;
+    }
+
+    function updateCourses() {
+      const dob = document.getElementById("date_of_birth").value;
+      const age = calculateAge(dob);
+      const ageDisplay = document.getElementById("age-display");
+      const ageWarning = document.getElementById("age-warning");
+      const courseSelect = document.getElementById("course_type");
+
+      if (age === null) {
+        ageDisplay.textContent = "Age on 6 Jul 2026: —";
+        courseSelect.innerHTML = '<option value="">Select date of birth first</option>';
+        ageWarning.classList.add("hidden");
+        return;
+      }
+
+      ageDisplay.textContent = `Age on 6 Jul 2026: ${age} years old`;
+
+      let options = [];
+      if (age < 10) {
+        ageWarning.textContent = `Minimum age is 10. Registrant will be ${age}.`;
+        ageWarning.classList.remove("hidden");
+        courseSelect.innerHTML = '<option value="">Not eligible</option>';
+        courseSelect.disabled = true;
+        return;
+      } else {
+        ageWarning.classList.add("hidden");
+        courseSelect.disabled = false;
+      }
+
+      if (age <= 13) {
+        options = ["C-2.20 (20 lessons) - 10-16 years old - English with full activity schedule"];
+      } else if (age <= 15) {
+        options = [
+          "C-2.20 (20 lessons) - 10-16 years old - English with full activity schedule",
+          "C-2.30 (30 lessons) - 14-16 years old - Intensive English with full activity schedule"
+        ];
+      } else if (age <= 17) {
+        options = [
+          "V-2.20 (20 lessons) - 16-17 years old - English with full activity schedule",
+          "V-2.30 (30 lessons) - 16-17 years old - Intensive English with full activity schedule"
+        ];
+      } else {
+        options = [
+          "G-1.20 (20 lessons) - 16+ years old - English course (Adults / Parents)",
+          "G-1.30 (30 lessons) - 16+ years old - Intensive English course (Adults / Parents)",
+          "I-1.30 (30 lessons) - 16+ years old - IELTS Preparation"
+        ];
+      }
+
+      courseSelect.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join("");
+    }
+
+    function updateEndDate() {
+      const start = document.getElementById("course_start_date").value;
+      const weeks = parseInt(document.getElementById("duration_weeks").value) || 0;
+      if (!start || !weeks) return;
+
+      const end = new Date(start);
+      end.setDate(end.getDate() + (weeks * 7));
+      document.getElementById("course_end_date").value = end.toISOString().split("T")[0];
+    }
+
+    // ==========================================
+    // DRAFT (localStorage)
+    // ==========================================
+    const FIELDS = [
+      "surname", "first_name", "date_of_birth", "passport_number", "gender", "nationality",
+      "course_type", "course_start_date", "duration_weeks", "course_end_date",
+      "allergies", "home_address_english",
+      "guardian_name", "guardian_tel", "guardian_email", "guardian_line_id", "guardian_speaks_english"
+    ];
+
+    function saveDraft() {
+      const data = {};
+      FIELDS.forEach(id => data[id] = document.getElementById(id).value);
+      localStorage.setItem("ambex_draft", JSON.stringify(data));
+      alert("Draft saved on this device");
+    }
+
+    function loadDraft() {
+      const raw = localStorage.getItem("ambex_draft");
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        FIELDS.forEach(id => {
+          if (data[id] !== undefined) document.getElementById(id).value = data[id];
+        });
+        updateCourses();
+        updateEndDate();
+      } catch (e) {}
+    }
+
+    // ==========================================
+    // VALIDATION & SUBMIT
+    // ==========================================
+    function showError(msg) {
+      const el = document.getElementById("global-error");
+      el.textContent = msg;
+      el.style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function clearError() {
+      document.getElementById("global-error").style.display = "none";
+    }
+
+    function getFormData(status) {
+      return {
+        surname: document.getElementById("surname").value.trim().toUpperCase(),
+        first_name: document.getElementById("first_name").value.trim().toUpperCase(),
+        date_of_birth: document.getElementById("date_of_birth").value,
+        passport_number: document.getElementById("passport_number").value.replace(/[^0-9]/g, ""),
+        gender: document.getElementById("gender").value,
+        nationality: document.getElementById("nationality").value.trim(),
+        course_type: document.getElementById("course_type").value,
+        course_start_date: document.getElementById("course_start_date").value,
+        duration_weeks: parseInt(document.getElementById("duration_weeks").value) || null,
+        course_end_date: document.getElementById("course_end_date").value,
+        allergies: document.getElementById("allergies").value.trim(),
+        home_address_english: document.getElementById("home_address_english").value.trim(),
+        guardian_name: document.getElementById("guardian_name").value.trim(),
+        guardian_tel: document.getElementById("guardian_tel").value.trim(),
+        guardian_email: document.getElementById("guardian_email").value.trim(),
+        guardian_line_id: document.getElementById("guardian_line_id").value.trim(),
+        guardian_speaks_english: document.getElementById("guardian_speaks_english").value,
+        line_user_id: lineUserId,
+        status: status,
+        updated_at: new Date().toISOString(),
+        submitted_at: status === "Submitted" ? new Date().toISOString() : null
+      };
+    }
+
+    async function submitForm(status) {
+      clearError();
+      const data = getFormData(status);
+
+      // Basic required checks for final submit
+      if (status === "Submitted") {
+        if (!data.surname || !data.first_name || !data.date_of_birth ||
+            !data.course_type || !data.course_start_date ||
+            !data.home_address_english || !data.guardian_name ||
+            !data.guardian_tel || !data.guardian_email) {
+          showError("Please fill in all required fields marked with *");
+          return;
+        }
+      }
+
+      try {
+        const { error } = await supabase.from("registrations").insert([data]);
+        if (error) throw error;
+
+        if (status === "Submitted") {
+          localStorage.removeItem("ambex_draft");
+          document.getElementById("form-container").style.display = "none";
+          document.getElementById("footer-actions").style.display = "none";
+          document.getElementById("success-screen").style.display = "block";
+        } else {
+          alert("Draft saved successfully");
+        }
+      } catch (err) {
+        console.error(err);
+        showError("Could not save. Please check your connection and try again.");
+      }
+    }
+
+    // ==========================================
+    // EVENT LISTENERS
+    // ==========================================
+    document.getElementById("date_of_birth").addEventListener("change", updateCourses);
+    document.getElementById("course_start_date").addEventListener("change", updateEndDate);
+    document.getElementById("duration_weeks").addEventListener("input", updateEndDate);
+
+    document.getElementById("btn-draft").addEventListener("click", () => submitForm("Draft"));
+    document.getElementById("btn-submit").addEventListener("click", () => submitForm("Submitted"));
+
+    // ==========================================
+    // START
+    // ==========================================
+    initLiff();
+    loadDraft();
+    updateEndDate();
+  </script>
+</body>
+</html>

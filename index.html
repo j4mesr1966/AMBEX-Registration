@@ -5,15 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>AMBEX Registration</title>
 
-  <!-- LIFF SDK -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
-      --primary: #06C755;          /* LINE green */
+      --primary: #06C755;
       --primary-dark: #05a548;
       --bg: #f7f8fa;
       --card: #ffffff;
@@ -32,7 +29,7 @@
       color: var(--text);
       line-height: 1.5;
       padding: 16px;
-      padding-bottom: 100px;
+      padding-bottom: 120px;
     }
 
     .container {
@@ -62,9 +59,6 @@
     .card h2 {
       font-size: 1.05rem;
       margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
     label {
@@ -85,7 +79,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 1rem;
-      margin-bottom: 14px;
+      margin-bottom: 6px;
       background: #fff;
     }
 
@@ -93,6 +87,13 @@
       outline: none;
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.15);
+    }
+
+    .field-error {
+      color: var(--danger);
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+      display: none;
     }
 
     textarea { min-height: 80px; resize: vertical; }
@@ -122,13 +123,13 @@
       margin-bottom: 14px;
     }
 
-    .error {
+    .error-box {
       background: #fef2f2;
       color: var(--danger);
-      padding: 10px 14px;
+      padding: 12px 14px;
       border-radius: 8px;
       font-size: 0.9rem;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       display: none;
     }
 
@@ -156,11 +157,10 @@
     .btn-secondary {
       background: #f3f4f6;
       color: #333;
-      margin-top: 10px;
     }
 
     .btn:disabled {
-      opacity: 0.6;
+      opacity: 0.55;
       cursor: not-allowed;
     }
 
@@ -174,6 +174,7 @@
       box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
       display: flex;
       gap: 10px;
+      z-index: 100;
     }
 
     .footer-actions .btn {
@@ -191,7 +192,7 @@
       margin: 16px 0 8px;
     }
 
-    .hidden { display: none; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -199,7 +200,7 @@
     <h1>AMBEX Registration</h1>
     <p class="subtitle">Please fill in English characters only</p>
 
-    <div id="global-error" class="error"></div>
+    <div id="global-error" class="error-box"></div>
 
     <!-- 1. Core Identity -->
     <div class="card">
@@ -207,17 +208,21 @@
 
       <label class="required">Surname / Family Name</label>
       <input type="text" id="surname" placeholder="e.g. WANG" autocomplete="family-name" />
+      <div class="field-error" id="err-surname">Surname is required</div>
 
       <label class="required">First Name</label>
       <input type="text" id="first_name" placeholder="e.g. WEI" autocomplete="given-name" />
+      <div class="field-error" id="err-first_name">First name is required</div>
 
       <label class="required">Date of Birth</label>
       <input type="date" id="date_of_birth" />
+      <div class="field-error" id="err-date_of_birth">Date of birth is required</div>
 
       <div class="row">
         <div>
           <label>Passport Number</label>
           <input type="text" id="passport_number" inputmode="numeric" placeholder="Numbers only" />
+          <div class="field-error" id="err-passport_number">Only numbers allowed</div>
         </div>
         <div>
           <label class="required">Gender</label>
@@ -241,8 +246,9 @@
 
       <label class="required">Course Type</label>
       <select id="course_type">
-        <option value="">Select course...</option>
+        <option value="">Select date of birth first</option>
       </select>
+      <div class="field-error" id="err-course_type">Please select a course</div>
 
       <div class="row">
         <div>
@@ -255,7 +261,7 @@
         </div>
       </div>
 
-      <label>Course End Date</label>
+      <label>Course End Date (auto-calculated)</label>
       <input type="date" id="course_end_date" readonly />
     </div>
 
@@ -271,6 +277,7 @@
       <h2>4. Home Address</h2>
       <label class="required">Address (English characters only)</label>
       <textarea id="home_address_english" placeholder="Full address in English"></textarea>
+      <div class="field-error" id="err-home_address_english">Address is required</div>
     </div>
 
     <!-- 5. Guardian -->
@@ -279,12 +286,15 @@
 
       <label class="required">Guardian Full Name</label>
       <input type="text" id="guardian_name" />
+      <div class="field-error" id="err-guardian_name">Guardian name is required</div>
 
       <label class="required">Mobile Phone</label>
       <input type="tel" id="guardian_tel" placeholder="+886912345678" />
+      <div class="field-error" id="err-guardian_tel">Enter a valid phone number</div>
 
       <label class="required">Email</label>
       <input type="email" id="guardian_email" />
+      <div class="field-error" id="err-guardian_email">Enter a valid email address</div>
 
       <label>LINE ID</label>
       <input type="text" id="guardian_line_id" />
@@ -301,53 +311,45 @@
   <div class="success-screen" id="success-screen">
     <div style="font-size: 3rem;">✅</div>
     <h2>Registration Submitted!</h2>
-    <p>Thank you. You can safely close this window.</p>
+    <p>Thank you. You can close this page.</p>
   </div>
 
   <!-- Footer buttons -->
   <div class="footer-actions" id="footer-actions">
-    <button class="btn btn-secondary" id="btn-draft">Save Draft</button>
-    <button class="btn btn-primary" id="btn-submit">Submit Application</button>
+    <button type="button" class="btn btn-secondary" id="btn-draft">Save Draft</button>
+    <button type="button" class="btn btn-primary" id="btn-submit">Submit Application</button>
   </div>
 
   <script>
     // ==========================================
-    // CONFIG – REPLACE THESE THREE VALUES
+    // CONFIG – REPLACE THESE TWO VALUES
     // ==========================================
-    const SUPABASE_URL = "https://bwhkccfwzsvjtsaqvhyy.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_LdjLR-FIesLKwuqtQzHDpg_C-OIdGgg";
-    const LIFF_ID = "YOUR_LIFF_ID";
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
     // ==========================================
     // INIT
     // ==========================================
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const TRIP_START = new Date("2026-07-06");
 
-    let lineUserId = null;
-
     // ==========================================
-    // LIFF
+    // HELPERS
     // ==========================================
-    async function initLiff() {
-      try {
-        await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-        const profile = await liff.getProfile();
-        lineUserId = profile.userId;
-        // Optional: pre-fill name if you want
-        // document.getElementById("first_name").value = profile.displayName;
-      } catch (err) {
-        console.log("LIFF init failed (probably running outside LINE)", err);
-      }
+    function isValidEmail(email) {
+      if (!email) return false;
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 
-    // ==========================================
-    // AGE & COURSE LOGIC
-    // ==========================================
+    function isValidPhone(phone) {
+      if (!phone) return false;
+      return /^\+?[0-9\s\-]{7,20}$/.test(phone);
+    }
+
+    function cleanPassport(value) {
+      return value.replace(/[^0-9]/g, "");
+    }
+
     function calculateAge(dob) {
       if (!dob) return null;
       const born = new Date(dob);
@@ -375,18 +377,18 @@
 
       ageDisplay.textContent = `Age on 6 Jul 2026: ${age} years old`;
 
-      let options = [];
       if (age < 10) {
-        ageWarning.textContent = `Minimum age is 10. Registrant will be ${age}.`;
+        ageWarning.textContent = `Minimum age is 10. Registrant will be ${age} years old.`;
         ageWarning.classList.remove("hidden");
         courseSelect.innerHTML = '<option value="">Not eligible</option>';
         courseSelect.disabled = true;
         return;
-      } else {
-        ageWarning.classList.add("hidden");
-        courseSelect.disabled = false;
       }
 
+      ageWarning.classList.add("hidden");
+      courseSelect.disabled = false;
+
+      let options = [];
       if (age <= 13) {
         options = ["C-2.20 (20 lessons) - 10-16 years old - English with full activity schedule"];
       } else if (age <= 15) {
@@ -413,8 +415,10 @@
     function updateEndDate() {
       const start = document.getElementById("course_start_date").value;
       const weeks = parseInt(document.getElementById("duration_weeks").value) || 0;
-      if (!start || !weeks) return;
-
+      if (!start || !weeks) {
+        document.getElementById("course_end_date").value = "";
+        return;
+      }
       const end = new Date(start);
       end.setDate(end.getDate() + (weeks * 7));
       document.getElementById("course_end_date").value = end.toISOString().split("T")[0];
@@ -430,11 +434,10 @@
       "guardian_name", "guardian_tel", "guardian_email", "guardian_line_id", "guardian_speaks_english"
     ];
 
-    function saveDraft() {
+    function saveDraftLocally() {
       const data = {};
       FIELDS.forEach(id => data[id] = document.getElementById(id).value);
       localStorage.setItem("ambex_draft", JSON.stringify(data));
-      alert("Draft saved on this device");
     }
 
     function loadDraft() {
@@ -443,7 +446,9 @@
       try {
         const data = JSON.parse(raw);
         FIELDS.forEach(id => {
-          if (data[id] !== undefined) document.getElementById(id).value = data[id];
+          if (data[id] !== undefined && document.getElementById(id)) {
+            document.getElementById(id).value = data[id];
+          }
         });
         updateCourses();
         updateEndDate();
@@ -451,39 +456,88 @@
     }
 
     // ==========================================
-    // VALIDATION & SUBMIT
+    // VALIDATION
     // ==========================================
-    function showError(msg) {
-      const el = document.getElementById("global-error");
-      el.textContent = msg;
-      el.style.display = "block";
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function clearError() {
+    function clearAllErrors() {
+      document.querySelectorAll(".field-error").forEach(el => el.style.display = "none");
       document.getElementById("global-error").style.display = "none";
     }
 
+    function showFieldError(id, show = true) {
+      const el = document.getElementById("err-" + id);
+      if (el) el.style.display = show ? "block" : "none";
+    }
+
+    function validate(status) {
+      clearAllErrors();
+      let valid = true;
+
+      const surname = document.getElementById("surname").value.trim();
+      const firstName = document.getElementById("first_name").value.trim();
+      const dob = document.getElementById("date_of_birth").value;
+      const passport = document.getElementById("passport_number").value;
+      const course = document.getElementById("course_type").value;
+      const address = document.getElementById("home_address_english").value.trim();
+      const gName = document.getElementById("guardian_name").value.trim();
+      const gTel = document.getElementById("guardian_tel").value.trim();
+      const gEmail = document.getElementById("guardian_email").value.trim();
+
+      // Always clean passport
+      if (passport && passport !== cleanPassport(passport)) {
+        showFieldError("passport_number", true);
+        valid = false;
+      }
+
+      if (status === "Submitted") {
+        if (!surname) { showFieldError("surname"); valid = false; }
+        if (!firstName) { showFieldError("first_name"); valid = false; }
+        if (!dob) { showFieldError("date_of_birth"); valid = false; }
+        if (!course || course === "Not eligible") { showFieldError("course_type"); valid = false; }
+        if (!address) { showFieldError("home_address_english"); valid = false; }
+        if (!gName) { showFieldError("guardian_name"); valid = false; }
+
+        if (!gTel || !isValidPhone(gTel)) {
+          showFieldError("guardian_tel");
+          valid = false;
+        }
+        if (!gEmail || !isValidEmail(gEmail)) {
+          showFieldError("guardian_email");
+          valid = false;
+        }
+
+        const age = calculateAge(dob);
+        if (age !== null && age < 10) {
+          document.getElementById("global-error").textContent = "Applicant does not meet the minimum age requirement.";
+          document.getElementById("global-error").style.display = "block";
+          valid = false;
+        }
+      }
+
+      return valid;
+    }
+
+    // ==========================================
+    // SUBMIT
+    // ==========================================
     function getFormData(status) {
       return {
         surname: document.getElementById("surname").value.trim().toUpperCase(),
         first_name: document.getElementById("first_name").value.trim().toUpperCase(),
-        date_of_birth: document.getElementById("date_of_birth").value,
-        passport_number: document.getElementById("passport_number").value.replace(/[^0-9]/g, ""),
+        date_of_birth: document.getElementById("date_of_birth").value || null,
+        passport_number: cleanPassport(document.getElementById("passport_number").value) || null,
         gender: document.getElementById("gender").value,
-        nationality: document.getElementById("nationality").value.trim(),
-        course_type: document.getElementById("course_type").value,
-        course_start_date: document.getElementById("course_start_date").value,
+        nationality: document.getElementById("nationality").value.trim() || null,
+        course_type: document.getElementById("course_type").value || null,
+        course_start_date: document.getElementById("course_start_date").value || null,
         duration_weeks: parseInt(document.getElementById("duration_weeks").value) || null,
-        course_end_date: document.getElementById("course_end_date").value,
-        allergies: document.getElementById("allergies").value.trim(),
-        home_address_english: document.getElementById("home_address_english").value.trim(),
-        guardian_name: document.getElementById("guardian_name").value.trim(),
-        guardian_tel: document.getElementById("guardian_tel").value.trim(),
-        guardian_email: document.getElementById("guardian_email").value.trim(),
-        guardian_line_id: document.getElementById("guardian_line_id").value.trim(),
+        course_end_date: document.getElementById("course_end_date").value || null,
+        allergies: document.getElementById("allergies").value.trim() || null,
+        home_address_english: document.getElementById("home_address_english").value.trim() || null,
+        guardian_name: document.getElementById("guardian_name").value.trim() || null,
+        guardian_tel: document.getElementById("guardian_tel").value.trim() || null,
+        guardian_email: document.getElementById("guardian_email").value.trim() || null,
+        guardian_line_id: document.getElementById("guardian_line_id").value.trim() || null,
         guardian_speaks_english: document.getElementById("guardian_speaks_english").value,
-        line_user_id: lineUserId,
         status: status,
         updated_at: new Date().toISOString(),
         submitted_at: status === "Submitted" ? new Date().toISOString() : null
@@ -491,22 +545,18 @@
     }
 
     async function submitForm(status) {
-      clearError();
-      const data = getFormData(status);
-
-      // Basic required checks for final submit
-      if (status === "Submitted") {
-        if (!data.surname || !data.first_name || !data.date_of_birth ||
-            !data.course_type || !data.course_start_date ||
-            !data.home_address_english || !data.guardian_name ||
-            !data.guardian_tel || !data.guardian_email) {
-          showError("Please fill in all required fields marked with *");
-          return;
-        }
+      if (!validate(status)) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
       }
 
+      const data = getFormData(status);
+      const btn = status === "Submitted" ? document.getElementById("btn-submit") : document.getElementById("btn-draft");
+      btn.disabled = true;
+      btn.textContent = status === "Submitted" ? "Submitting..." : "Saving...";
+
       try {
-        const { error } = await supabase.from("registrations").insert([data]);
+        const { error } = await supabaseClient.from("registrations").insert([data]);
         if (error) throw error;
 
         if (status === "Submitted") {
@@ -515,11 +565,17 @@
           document.getElementById("footer-actions").style.display = "none";
           document.getElementById("success-screen").style.display = "block";
         } else {
-          alert("Draft saved successfully");
+          saveDraftLocally();
+          alert("Draft saved. You can close this page and return later to continue.");
         }
       } catch (err) {
         console.error(err);
-        showError("Could not save. Please check your connection and try again.");
+        document.getElementById("global-error").textContent = "Could not save. Please check your internet connection and try again.";
+        document.getElementById("global-error").style.display = "block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } finally {
+        btn.disabled = false;
+        btn.textContent = status === "Submitted" ? "Submit Application" : "Save Draft";
       }
     }
 
@@ -530,13 +586,22 @@
     document.getElementById("course_start_date").addEventListener("change", updateEndDate);
     document.getElementById("duration_weeks").addEventListener("input", updateEndDate);
 
+    // Live passport cleaning feedback
+    document.getElementById("passport_number").addEventListener("input", function() {
+      const cleaned = cleanPassport(this.value);
+      if (this.value && this.value !== cleaned) {
+        showFieldError("passport_number", true);
+      } else {
+        showFieldError("passport_number", false);
+      }
+    });
+
     document.getElementById("btn-draft").addEventListener("click", () => submitForm("Draft"));
     document.getElementById("btn-submit").addEventListener("click", () => submitForm("Submitted"));
 
     // ==========================================
     // START
     // ==========================================
-    initLiff();
     loadDraft();
     updateEndDate();
   </script>

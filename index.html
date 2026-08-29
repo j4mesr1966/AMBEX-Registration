@@ -4,10 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>AMBEX Registration</title>
-
-  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
     :root {
       --primary: #06C755;
@@ -20,9 +17,7 @@
       --danger: #e11d48;
       --radius: 12px;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
@@ -31,23 +26,9 @@
       padding: 16px;
       padding-bottom: 120px;
     }
-
-    .container {
-      max-width: 480px;
-      margin: 0 auto;
-    }
-
-    h1 {
-      font-size: 1.4rem;
-      margin-bottom: 4px;
-    }
-
-    .subtitle {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 24px;
-    }
-
+    .container { max-width: 480px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin-bottom: 4px; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
     .card {
       background: var(--card);
       border-radius: var(--radius);
@@ -55,24 +36,9 @@
       margin-bottom: 16px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
-
-    .card h2 {
-      font-size: 1.05rem;
-      margin-bottom: 16px;
-    }
-
-    label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 500;
-      margin-bottom: 6px;
-    }
-
-    .required::after {
-      content: " *";
-      color: var(--danger);
-    }
-
+    .card h2 { font-size: 1.05rem; margin-bottom: 16px; }
+    label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; }
+    .required::after { content: " *"; color: var(--danger); }
     input, select, textarea {
       width: 100%;
       padding: 12px 14px;
@@ -82,28 +48,23 @@
       margin-bottom: 6px;
       background: #fff;
     }
-
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.15);
     }
-
-    .field-error {
-      color: var(--danger);
-      font-size: 0.8rem;
-      margin-bottom: 12px;
-      display: none;
-    }
-
+    .field-error { color: var(--danger); font-size: 0.8rem; margin-bottom: 12px; display: none; }
     textarea { min-height: 80px; resize: vertical; }
-
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .date-fmt {
+      display: inline-block;
+      background: #e8f5e9;
+      color: #2e7d32;
+      font-size: 0.8rem;
+      padding: 3px 8px;
+      border-radius: 20px;
+      margin-bottom: 12px;
     }
-
     .age-badge {
       display: inline-block;
       background: #e8f5e9;
@@ -113,7 +74,6 @@
       border-radius: 20px;
       margin-bottom: 12px;
     }
-
     .warning {
       background: #fff3cd;
       color: #856404;
@@ -122,7 +82,6 @@
       font-size: 0.9rem;
       margin-bottom: 14px;
     }
-
     .error-box {
       background: #fef2f2;
       color: var(--danger);
@@ -132,7 +91,6 @@
       margin-bottom: 16px;
       display: none;
     }
-
     .btn {
       display: block;
       width: 100%;
@@ -144,31 +102,12 @@
       cursor: pointer;
       text-align: center;
     }
-
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-    }
-
-    .btn-primary:active {
-      background: var(--primary-dark);
-    }
-
-    .btn-secondary {
-      background: #f3f4f6;
-      color: #333;
-    }
-
-    .btn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: #f3f4f6; color: #333; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .footer-actions {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       background: white;
       padding: 12px 16px;
       box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
@@ -176,36 +115,20 @@
       gap: 10px;
       z-index: 100;
     }
-
-    .footer-actions .btn {
-      flex: 1;
-    }
-
-    .success-screen {
-      display: none;
-      text-align: center;
-      padding: 60px 20px;
-    }
-
-    .success-screen h2 {
-      font-size: 1.5rem;
-      margin: 16px 0 8px;
-    }
-
+    .footer-actions .btn { flex: 1; }
+    .success-screen { display: none; text-align: center; padding: 60px 20px; }
+    .success-screen h2 { font-size: 1.5rem; margin: 16px 0 8px; }
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <div class="container" id="form-container">
     <h1>AMBEX Registration</h1>
-    <p class="subtitle">Please fill in English characters only</p>
-
+    <p class="subtitle">Please fill in English characters only. Dates are shown as DD-MMM-YYYY.</p>
     <div id="global-error" class="error-box"></div>
 
-    <!-- 1. Core Identity -->
     <div class="card">
       <h2>1. Core Identity</h2>
-
       <label class="required">Surname / Family Name</label>
       <input type="text" id="surname" placeholder="e.g. WANG" autocomplete="family-name" />
       <div class="field-error" id="err-surname">Surname is required</div>
@@ -216,6 +139,7 @@
 
       <label class="required">Date of Birth</label>
       <input type="date" id="date_of_birth" />
+      <div class="date-fmt" id="date_of_birth_fmt">—</div>
       <div class="field-error" id="err-date_of_birth">Date of birth is required</div>
 
       <div class="row">
@@ -232,15 +156,12 @@
           </select>
         </div>
       </div>
-
       <label>Nationality</label>
       <input type="text" id="nationality" value="Taiwanese" />
     </div>
 
-    <!-- 2. Course & Trip -->
     <div class="card">
-      <h2>2. Course & Trip</h2>
-
+      <h2>2. Course &amp; Trip</h2>
       <div id="age-display" class="age-badge">Age on 6 Jul 2026: —</div>
       <div id="age-warning" class="warning hidden"></div>
 
@@ -252,8 +173,9 @@
 
       <div class="row">
         <div>
-          <label class="required">Start Date</label>
+          <label class="required">Course Start Date</label>
           <input type="date" id="course_start_date" value="2026-07-06" />
+          <div class="date-fmt" id="course_start_date_fmt">—</div>
         </div>
         <div>
           <label class="required">Duration (weeks)</label>
@@ -263,16 +185,15 @@
 
       <label>Course End Date (auto-calculated)</label>
       <input type="date" id="course_end_date" readonly />
+      <div class="date-fmt" id="course_end_date_fmt">—</div>
     </div>
 
-    <!-- 3. Medical -->
     <div class="card">
-      <h2>3. Medical & Dietary</h2>
+      <h2>3. Medical &amp; Dietary</h2>
       <label>Allergies / Special requirements</label>
       <textarea id="allergies" placeholder="Leave blank if none"></textarea>
     </div>
 
-    <!-- 4. Address -->
     <div class="card">
       <h2>4. Home Address</h2>
       <label class="required">Address (English characters only)</label>
@@ -280,10 +201,8 @@
       <div class="field-error" id="err-home_address_english">Address is required</div>
     </div>
 
-    <!-- 5. Guardian -->
     <div class="card">
       <h2>5. Parent / Guardian</h2>
-
       <label class="required">Guardian Full Name</label>
       <input type="text" id="guardian_name" />
       <div class="field-error" id="err-guardian_name">Guardian name is required</div>
@@ -305,60 +224,112 @@
         <option value="NO">NO</option>
       </select>
     </div>
+
+    <div class="card">
+      <h2>6. Flight Details</h2>
+      <p class="subtitle">Choose a standard flight out date first. Matching return dates will then appear.</p>
+
+      <label>Standard Flight Out Date</label>
+      <select id="flight_out_date">
+        <option value="">Select a flight out date...</option>
+      </select>
+      <div class="date-fmt" id="flight_out_date_fmt">—</div>
+
+      <div id="return-wrap" class="hidden">
+        <label>Associated Flight Return Date</label>
+        <select id="flight_return_date">
+          <option value="">I do not want the standard return</option>
+        </select>
+        <div class="date-fmt" id="flight_return_date_fmt">—</div>
+      </div>
+
+      <div id="alt-wrap" class="hidden">
+        <label>If not using the standard return</label>
+        <select id="flight_arrangement">
+          <option value="">Select an option...</option>
+          <option value="Custom Outbound">Outbound Flight Date and Flight Number</option>
+          <option value="Parental Pick Up">Parental Pick Up</option>
+          <option value="Other Plans">Other Plans</option>
+        </select>
+
+        <div id="custom-flight-wrap" class="hidden">
+          <label>Outbound Flight Date</label>
+          <input type="date" id="custom_outbound_date" />
+          <div class="date-fmt" id="custom_outbound_date_fmt">—</div>
+          <label>Outbound Flight Number</label>
+          <input type="text" id="custom_outbound_flight_number" placeholder="e.g. BA123" />
+        </div>
+
+        <div id="other-plans-wrap" class="hidden">
+          <label>Other plans details</label>
+          <textarea id="other_plans_notes" placeholder="Describe the travel plan"></textarea>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Success Screen -->
   <div class="success-screen" id="success-screen">
     <div style="font-size: 3rem;">✅</div>
     <h2>Registration Submitted!</h2>
     <p>Thank you. You can close this page.</p>
   </div>
 
-  <!-- Footer buttons -->
   <div class="footer-actions" id="footer-actions">
     <button type="button" class="btn btn-secondary" id="btn-draft">Save Draft</button>
     <button type="button" class="btn btn-primary" id="btn-submit">Submit Application</button>
   </div>
 
   <script>
-    // ==========================================
-    // CONFIG – REPLACE THESE TWO VALUES
-    // ==========================================
     const SUPABASE_URL = "https://bwhkccfwzsvjtsaqvhyy.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_LdjLR-FIesLKwuqtQzHDpg_C-OIdGgg";
 
-    // ==========================================
-    // INIT
-    // ==========================================
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const TRIP_START = new Date("2026-07-06");
+    const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-    // ==========================================
-    // HELPERS
-    // ==========================================
+    let flightOptions = [];
+
+    function formatDateDisplay(iso) {
+      if (!iso) return "—";
+      const d = new Date(String(iso).slice(0, 10) + "T00:00:00");
+      if (isNaN(d)) return "—";
+      return `${String(d.getDate()).padStart(2, "0")}-${MONTHS[d.getMonth()]}-${d.getFullYear()}`;
+    }
+
     function isValidEmail(email) {
-      if (!email) return false;
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || "");
     }
-
     function isValidPhone(phone) {
-      if (!phone) return false;
-      return /^\+?[0-9\s\-]{7,20}$/.test(phone);
+      return /^\+?[0-9\s\-]{7,20}$/.test(phone || "");
     }
-
     function cleanPassport(value) {
-      return value.replace(/[^0-9]/g, "");
+      return (value || "").replace(/[^0-9]/g, "");
     }
-
     function calculateAge(dob) {
       if (!dob) return null;
       const born = new Date(dob);
       let age = TRIP_START.getFullYear() - born.getFullYear();
       const m = TRIP_START.getMonth() - born.getMonth();
-      if (m < 0 || (m === 0 && TRIP_START.getDate() < born.getDate())) {
-        age--;
-      }
+      if (m < 0 || (m === 0 && TRIP_START.getDate() < born.getDate())) age--;
       return age;
+    }
+
+    function refreshDateLabels() {
+      document.getElementById("date_of_birth_fmt").textContent =
+        formatDateDisplay(document.getElementById("date_of_birth").value);
+      document.getElementById("course_start_date_fmt").textContent =
+        formatDateDisplay(document.getElementById("course_start_date").value);
+      document.getElementById("course_end_date_fmt").textContent =
+        formatDateDisplay(document.getElementById("course_end_date").value);
+      document.getElementById("flight_out_date_fmt").textContent =
+        formatDateDisplay(document.getElementById("flight_out_date").value);
+      document.getElementById("custom_outbound_date_fmt").textContent =
+        formatDateDisplay(document.getElementById("custom_outbound_date").value);
+
+      const selectedId = document.getElementById("flight_return_date").value;
+      const match = flightOptions.find(f => f.id === selectedId);
+      document.getElementById("flight_return_date_fmt").textContent =
+        match ? formatDateDisplay(match.return_date) : "—";
     }
 
     function updateCourses() {
@@ -408,8 +379,8 @@
           "I-1.30 (30 lessons) - 16+ years old - IELTS Preparation"
         ];
       }
-
       courseSelect.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join("");
+      updateFlightArrangementUI();
     }
 
     function updateEndDate() {
@@ -417,26 +388,108 @@
       const weeks = parseInt(document.getElementById("duration_weeks").value) || 0;
       if (!start || !weeks) {
         document.getElementById("course_end_date").value = "";
+        refreshDateLabels();
         return;
       }
-      const end = new Date(start);
+      const end = new Date(start + "T00:00:00");
       end.setDate(end.getDate() + (weeks * 7));
       document.getElementById("course_end_date").value = end.toISOString().split("T")[0];
+      refreshDateLabels();
     }
 
-    // ==========================================
-    // DRAFT (localStorage)
-    // ==========================================
+    async function loadFlightOptions() {
+      try {
+        const { data, error } = await supabaseClient
+          .from("flight_options")
+          .select("*")
+          .eq("is_active", true)
+          .order("outbound_date");
+        if (error) throw error;
+        flightOptions = data || [];
+      } catch (e) {
+        console.error(e);
+        flightOptions = [];
+      }
+      populateOutboundDates();
+    }
+
+    function populateOutboundDates() {
+      const sel = document.getElementById("flight_out_date");
+      const current = sel.value;
+      const dates = [...new Set(flightOptions.map(f => f.outbound_date))];
+      sel.innerHTML = '<option value="">Select a flight out date...</option>' +
+        dates.map(d => `<option value="${d}">${formatDateDisplay(d)}</option>`).join("");
+      if (current && dates.includes(current)) sel.value = current;
+      populateReturnDates();
+    }
+
+    function populateReturnDates() {
+      const out = document.getElementById("flight_out_date").value;
+      const returnWrap = document.getElementById("return-wrap");
+      const retSel = document.getElementById("flight_return_date");
+      const current = retSel.value;
+
+      if (!out) {
+        returnWrap.classList.add("hidden");
+        document.getElementById("alt-wrap").classList.add("hidden");
+        refreshDateLabels();
+        return;
+      }
+
+      const matches = flightOptions.filter(f => f.outbound_date === out);
+      retSel.innerHTML = '<option value="">I do not want the standard return</option>' +
+        matches.map(f => {
+          const extra = f.return_flight_number ? ` (${f.return_flight_number})` : "";
+          return `<option value="${f.id}">${formatDateDisplay(f.return_date)}${extra}</option>`;
+        }).join("");
+
+      if (current && matches.some(f => f.id === current)) retSel.value = current;
+      returnWrap.classList.remove("hidden");
+      updateFlightArrangementUI();
+      refreshDateLabels();
+    }
+
+    function updateFlightArrangementUI() {
+      const out = document.getElementById("flight_out_date").value;
+      const ret = document.getElementById("flight_return_date").value;
+      const altWrap = document.getElementById("alt-wrap");
+      const customWrap = document.getElementById("custom-flight-wrap");
+      const otherWrap = document.getElementById("other-plans-wrap");
+      const arrangement = document.getElementById("flight_arrangement");
+      const otherOption = arrangement.querySelector('option[value="Other Plans"]');
+      const age = calculateAge(document.getElementById("date_of_birth").value);
+
+      if (otherOption) {
+        otherOption.disabled = !(age !== null && age >= 16);
+        if (otherOption.disabled && arrangement.value === "Other Plans") arrangement.value = "";
+      }
+
+      if (out && !ret) altWrap.classList.remove("hidden");
+      else {
+        altWrap.classList.add("hidden");
+        arrangement.value = "";
+      }
+
+      customWrap.classList.toggle("hidden", arrangement.value !== "Custom Outbound");
+      otherWrap.classList.toggle("hidden", arrangement.value !== "Other Plans");
+      refreshDateLabels();
+    }
+
     const FIELDS = [
-      "surname", "first_name", "date_of_birth", "passport_number", "gender", "nationality",
-      "course_type", "course_start_date", "duration_weeks", "course_end_date",
-      "allergies", "home_address_english",
-      "guardian_name", "guardian_tel", "guardian_email", "guardian_line_id", "guardian_speaks_english"
+      "surname","first_name","date_of_birth","passport_number","gender","nationality",
+      "course_type","course_start_date","duration_weeks","course_end_date",
+      "allergies","home_address_english",
+      "guardian_name","guardian_tel","guardian_email","guardian_line_id","guardian_speaks_english",
+      "flight_out_date","flight_return_date","flight_arrangement",
+      "custom_outbound_date","custom_outbound_flight_number","other_plans_notes"
     ];
 
     function saveDraftLocally() {
       const data = {};
-      FIELDS.forEach(id => data[id] = document.getElementById(id).value);
+      FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) data[id] = el.value;
+      });
       localStorage.setItem("ambex_draft", JSON.stringify(data));
     }
 
@@ -446,23 +499,21 @@
       try {
         const data = JSON.parse(raw);
         FIELDS.forEach(id => {
-          if (data[id] !== undefined && document.getElementById(id)) {
-            document.getElementById(id).value = data[id];
-          }
+          const el = document.getElementById(id);
+          if (el && data[id] !== undefined) el.value = data[id];
         });
         updateCourses();
         updateEndDate();
+        populateReturnDates();
+        updateFlightArrangementUI();
+        refreshDateLabels();
       } catch (e) {}
     }
 
-    // ==========================================
-    // VALIDATION
-    // ==========================================
     function clearAllErrors() {
       document.querySelectorAll(".field-error").forEach(el => el.style.display = "none");
       document.getElementById("global-error").style.display = "none";
     }
-
     function showFieldError(id, show = true) {
       const el = document.getElementById("err-" + id);
       if (el) el.style.display = show ? "block" : "none";
@@ -471,6 +522,7 @@
     function validate(status) {
       clearAllErrors();
       let valid = true;
+      if (status !== "Submitted") return true;
 
       const surname = document.getElementById("surname").value.trim();
       const firstName = document.getElementById("first_name").value.trim();
@@ -482,44 +534,35 @@
       const gTel = document.getElementById("guardian_tel").value.trim();
       const gEmail = document.getElementById("guardian_email").value.trim();
 
-      // Always clean passport
-      if (passport && passport !== cleanPassport(passport)) {
-        showFieldError("passport_number", true);
+      if (passport && passport !== cleanPassport(passport)) { showFieldError("passport_number"); valid = false; }
+      if (!surname) { showFieldError("surname"); valid = false; }
+      if (!firstName) { showFieldError("first_name"); valid = false; }
+      if (!dob) { showFieldError("date_of_birth"); valid = false; }
+      if (!course || course === "Not eligible") { showFieldError("course_type"); valid = false; }
+      if (!address) { showFieldError("home_address_english"); valid = false; }
+      if (!gName) { showFieldError("guardian_name"); valid = false; }
+      if (!gTel || !isValidPhone(gTel)) { showFieldError("guardian_tel"); valid = false; }
+      if (!gEmail || !isValidEmail(gEmail)) { showFieldError("guardian_email"); valid = false; }
+
+      const age = calculateAge(dob);
+      if (age !== null && age < 10) {
+        document.getElementById("global-error").textContent = "Applicant does not meet the minimum age requirement.";
+        document.getElementById("global-error").style.display = "block";
         valid = false;
       }
 
-      if (status === "Submitted") {
-        if (!surname) { showFieldError("surname"); valid = false; }
-        if (!firstName) { showFieldError("first_name"); valid = false; }
-        if (!dob) { showFieldError("date_of_birth"); valid = false; }
-        if (!course || course === "Not eligible") { showFieldError("course_type"); valid = false; }
-        if (!address) { showFieldError("home_address_english"); valid = false; }
-        if (!gName) { showFieldError("guardian_name"); valid = false; }
-
-        if (!gTel || !isValidPhone(gTel)) {
-          showFieldError("guardian_tel");
-          valid = false;
-        }
-        if (!gEmail || !isValidEmail(gEmail)) {
-          showFieldError("guardian_email");
-          valid = false;
-        }
-
-        const age = calculateAge(dob);
-        if (age !== null && age < 10) {
-          document.getElementById("global-error").textContent = "Applicant does not meet the minimum age requirement.";
-          document.getElementById("global-error").style.display = "block";
-          valid = false;
-        }
+      const arrangement = document.getElementById("flight_arrangement").value;
+      if (arrangement === "Other Plans" && !(age !== null && age >= 16)) {
+        document.getElementById("global-error").textContent = "Other Plans is only available for students aged 16+.";
+        document.getElementById("global-error").style.display = "block";
+        valid = false;
       }
-
       return valid;
     }
 
-    // ==========================================
-    // SUBMIT
-    // ==========================================
     function getFormData(status) {
+      const selectedId = document.getElementById("flight_return_date").value || null;
+      const match = flightOptions.find(f => f.id === selectedId);
       return {
         surname: document.getElementById("surname").value.trim().toUpperCase(),
         first_name: document.getElementById("first_name").value.trim().toUpperCase(),
@@ -538,6 +581,13 @@
         guardian_email: document.getElementById("guardian_email").value.trim() || null,
         guardian_line_id: document.getElementById("guardian_line_id").value.trim() || null,
         guardian_speaks_english: document.getElementById("guardian_speaks_english").value,
+        flight_option_id: selectedId,
+        flight_out_date: document.getElementById("flight_out_date").value || null,
+        flight_return_date: match ? match.return_date : null,
+        flight_arrangement: selectedId ? "Standard Return" : (document.getElementById("flight_arrangement").value || null),
+        custom_outbound_date: document.getElementById("custom_outbound_date").value || null,
+        custom_outbound_flight_number: document.getElementById("custom_outbound_flight_number").value.trim() || null,
+        other_plans_notes: document.getElementById("other_plans_notes").value.trim() || null,
         status: status,
         updated_at: new Date().toISOString(),
         submitted_at: status === "Submitted" ? new Date().toISOString() : null
@@ -549,7 +599,6 @@
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
-
       const data = getFormData(status);
       const btn = status === "Submitted" ? document.getElementById("btn-submit") : document.getElementById("btn-draft");
       btn.disabled = true;
@@ -558,7 +607,6 @@
       try {
         const { error } = await supabaseClient.from("registrations").insert([data]);
         if (error) throw error;
-
         if (status === "Submitted") {
           localStorage.removeItem("ambex_draft");
           document.getElementById("form-container").style.display = "none";
@@ -579,31 +627,28 @@
       }
     }
 
-    // ==========================================
-    // EVENT LISTENERS
-    // ==========================================
-    document.getElementById("date_of_birth").addEventListener("change", updateCourses);
+    document.getElementById("date_of_birth").addEventListener("change", () => {
+      updateCourses();
+      refreshDateLabels();
+    });
     document.getElementById("course_start_date").addEventListener("change", updateEndDate);
     document.getElementById("duration_weeks").addEventListener("input", updateEndDate);
-
-    // Live passport cleaning feedback
+    document.getElementById("flight_out_date").addEventListener("change", populateReturnDates);
+    document.getElementById("flight_return_date").addEventListener("change", updateFlightArrangementUI);
+    document.getElementById("flight_arrangement").addEventListener("change", updateFlightArrangementUI);
+    document.getElementById("custom_outbound_date").addEventListener("change", refreshDateLabels);
     document.getElementById("passport_number").addEventListener("input", function() {
-      const cleaned = cleanPassport(this.value);
-      if (this.value && this.value !== cleaned) {
-        showFieldError("passport_number", true);
-      } else {
-        showFieldError("passport_number", false);
-      }
+      showFieldError("passport_number", this.value && this.value !== cleanPassport(this.value));
     });
-
     document.getElementById("btn-draft").addEventListener("click", () => submitForm("Draft"));
     document.getElementById("btn-submit").addEventListener("click", () => submitForm("Submitted"));
 
-    // ==========================================
-    // START
-    // ==========================================
-    loadDraft();
-    updateEndDate();
+    (async function start() {
+      await loadFlightOptions();
+      loadDraft();
+      updateEndDate();
+      refreshDateLabels();
+    })();
   </script>
 </body>
 </html>

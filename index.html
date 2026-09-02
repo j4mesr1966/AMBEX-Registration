@@ -298,6 +298,33 @@
     let courseDateOptions = [];
     let endDateManuallyEdited = false;
 
+    function isEnglishOnly(value) {
+      if (!value) return true;
+      return /^[\x20-\x7E]*$/.test(value);
+    }
+
+    function checkEnglishLive(el) {
+      if (!el || el.id === "notes") return;
+      const err = document.getElementById("err-" + el.id);
+      const bad = !isEnglishOnly(el.value);
+      if (err) {
+        if (bad) {
+          err.textContent = "English characters only";
+          err.style.display = "block";
+        } else if (err.textContent === "English characters only") {
+          err.style.display = "none";
+        }
+      }
+      if (bad) {
+        document.getElementById("global-error").textContent = "Please use English characters only, except in Notes.";
+        document.getElementById("global-error").style.display = "block";
+      } else {
+        const stillBad = [...document.querySelectorAll("#form-container input, #form-container select, #form-container textarea")]
+          .some(field => field.id !== "notes" && !isEnglishOnly(field.value));
+        if (!stillBad) document.getElementById("global-error").style.display = "none";
+      }
+    }
+
     function formatDateDisplay(iso) {
       if (!iso) return "—";
       const d = new Date(String(iso).slice(0, 10) + "T00:00:00");
@@ -307,10 +334,6 @@
     function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || ""); }
     function isValidPhone(phone) { return /^\+?[0-9\s\-]{7,20}$/.test(phone || ""); }
     function cleanPassport(value) { return (value || "").replace(/[^0-9]/g, ""); }
-    function isEnglishOnly(value) {
-      if (!value) return true;
-      return /^[\x20-\x7E]*$/.test(value);
-    }
     function calculateAge(dob) {
       if (!dob) return null;
       const born = new Date(dob);
@@ -453,3 +476,276 @@
       document.getElementById("duration_weeks").value = option.duration_weeks;
       document.getElementById("course_end_date").value = String(option.end_date).slice(0, 10);
       endDateManuallyEdited = true;
+      refreshDateLabels();
+    }
+
+    function applyDateMode() {
+      const custom = dateMode() === "custom";
+      document.getElementById("default-dates-wrap").classList.toggle("hidden", custom);
+      document.getElementById("course_start_date").readOnly = !custom;
+      document.getElementById("duration_weeks").readOnly = !custom;
+      document.getElementById("course_end_date").readOnly = !custom;
+      document.getElementById("end-hint").textContent = custom
+        ? "Enter your own Course Start Date and Course End Date."
+        : "These dates come from Daddy English Administration.";
+      if (!custom) applySelectedCourseDate();
+      else {
+        endDateManuallyEdited = false;
+        updateEndDate(true);
+      }
+    }
+
+    async function loadFlightOptions() {
+      try {
+        const { data, error } = await supabaseClient.from("flight_options").select("*").eq("is_active", true).order("outbound_date");
+        if (error) throw error;
+        flightOptions = data || [];
+      } catch (e) {
+        flightOptions = [];
+      }
+      populateOutboundDates();
+    }
+
+    function populateOutboundDates() {
+      const sel = document.getElementById("flight_out_date");
+      const current = sel.value;
+      const dates = [...new Set(flightOptions.map(f => f.outbound_date))];
+      sel.innerHTML = '<option value="">Select a flight out date...</option>' +
+        dates.map(d => `<option value="${d}">${formatDateDisplay(d)}</option>`).join("");
+      if (current && dates.includes(current)) sel.value = current;
+      populateReturnDates();
+    }
+
+    function populateReturnDates() {
+      const out = document.getElementById("flight_out_date").value;
+      const returnWrap = document.getElementById("return-wrap");
+      const retSel = document.getElementById("flight_return_date");
+      const current = retSel.value;
+      if (!out) {
+        returnWrap.classList.add("hidden");
+        document.getElementById("alt-wrap").classList.add("hidden");
+        refreshDateLabels();
+        return;
+      }
+      const matches = flightOptions.filter(f => f.outbound_date === out);
+      retSel.innerHTML = '<option value="">I do not want the standard return</option>' +
+        matches.map(f => {
+          const extra = f.return_flight_number ? ` (${f.return_flight_number})` : "";
+          return `<option value="${f.id}">${formatDateDisplay(f.return_date)}${extra}</option>`;
+        }).join("");
+      if (current && matches.some(f => f.id === current)) retSel.value = current;
+      returnWrap.classList.remove("hidden");
+      updateFlightArrangementUI();
+    }
+
+    function updateFlightArrangementUI() {
+      const out = document.getElementById("flight_out_date").value;
+      const ret = document.getElementById("flight_return_date").value;
+      const arrangement = document.getElementById("flight_arrangement");
+      const otherOption = arrangement.querySelector('option[value="Other Plans"]');
+      const age = calculateAge(document.getElementById("date_of_birth").value);
+      if (otherOption) {
+        otherOption.disabled = !(age !== null && age >= 16);
+        if (otherOption.disabled && arrangement.value === "Other Plans") arrangement.value = "";
+      }
+      if (out && !ret) document.getElementById("alt-wrap").classList.remove("hidden");
+      else {
+        document.getElementById("alt-wrap").classList.add("hidden");
+        arrangement.value = "";
+      }
+      document.getElementById("custom-flight-wrap").classList.toggle("hidden", arrangement.value !== "Custom Outbound");
+      document.getElementById("other-plans-wrap").classList.toggle("hidden", arrangement.value !== "Other Plans");
+      refreshDateLabels();
+    }
+
+    const FIELDS = [
+      "surname","first_name","english_nickname","date_of_birth","passport_number","gender","nationality",
+      "course_type","course_start_date","duration_weeks","course_end_date",
+      "allergies","home_address_english",
+      "guardian_name","guardian_tel","guardian_email","guardian_line_id","guardian_speaks_english",
+      "flight_out_date","flight_return_date","flight_arrangement",
+      "custom_outbound_date","custom_outbound_flight_number","other_plans_notes","notes"
+    ];
+
+    function saveDraftLocally() {
+      const data = {};
+      FIELDS.forEach(id => { const el = document.getElementById(id); if (el) data[id] = el.value; });
+      data.date_mode = dateMode();
+      localStorage.setItem("ambex_draft", JSON.stringify(data));
+    }
+
+    function loadDraft() {
+      const raw = localStorage.getItem("ambex_draft");
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        FIELDS.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && data[id] !== undefined) el.value = data[id];
+        });
+        if (data.date_mode) {
+          const modeEl = document.querySelector(`input[name="date_mode"][value="${data.date_mode}"]`);
+          if (modeEl) modeEl.checked = true;
+        }
+        updateCourses();
+        applyDateMode();
+        populateReturnDates();
+      } catch (e) {}
+    }
+
+    function clearAllErrors() {
+      document.querySelectorAll(".field-error").forEach(el => el.style.display = "none");
+      document.getElementById("global-error").style.display = "none";
+    }
+    function showFieldError(id, show = true) {
+      const el = document.getElementById("err-" + id);
+      if (el) el.style.display = show ? "block" : "none";
+    }
+
+    function validateEnglishFields() {
+      let valid = true;
+      document.querySelectorAll("#form-container input, #form-container select, #form-container textarea").forEach(el => {
+        if (el.id === "notes") return;
+        if (!isEnglishOnly(el.value)) {
+          const err = document.getElementById("err-" + el.id);
+          if (err) {
+            err.textContent = "English characters only";
+            err.style.display = "block";
+          }
+          document.getElementById("global-error").textContent = "Please use English characters only, except in Notes.";
+          document.getElementById("global-error").style.display = "block";
+          valid = false;
+        }
+      });
+      return valid;
+    }
+
+    function validate(status) {
+      clearAllErrors();
+      let valid = validateEnglishFields();
+      if (status !== "Submitted") return valid;
+
+      const surname = document.getElementById("surname").value.trim();
+      const firstName = document.getElementById("first_name").value.trim();
+      const dob = document.getElementById("date_of_birth").value;
+      const passport = document.getElementById("passport_number").value;
+      const address = document.getElementById("home_address_english").value.trim();
+      const gName = document.getElementById("guardian_name").value.trim();
+      const gTel = document.getElementById("guardian_tel").value.trim();
+      const gEmail = document.getElementById("guardian_email").value.trim();
+      if (passport && passport !== cleanPassport(passport)) { showFieldError("passport_number"); valid = false; }
+      if (!surname) { showFieldError("surname"); valid = false; }
+      if (!firstName) { showFieldError("first_name"); valid = false; }
+      if (!dob) { showFieldError("date_of_birth"); valid = false; }
+      if (!address) { showFieldError("home_address_english"); valid = false; }
+      if (!gName) { showFieldError("guardian_name"); valid = false; }
+      if (!gTel || !isValidPhone(gTel)) { showFieldError("guardian_tel"); valid = false; }
+      if (!gEmail || !isValidEmail(gEmail)) { showFieldError("guardian_email"); valid = false; }
+
+      const age = calculateAge(dob);
+      const arrangement = document.getElementById("flight_arrangement").value;
+      if (arrangement === "Other Plans" && !(age !== null && age >= 16)) {
+        document.getElementById("global-error").textContent = "Other Plans is only available for students aged 16+.";
+        document.getElementById("global-error").style.display = "block";
+        valid = false;
+      }
+      return valid;
+    }
+
+    function getFormData(status) {
+      const selectedId = document.getElementById("flight_return_date").value || null;
+      const match = flightOptions.find(f => f.id === selectedId);
+      const selectedCourse = document.querySelector('input[name="course_type_radio"]:checked');
+      return {
+        surname: document.getElementById("surname").value.trim().toUpperCase(),
+        first_name: document.getElementById("first_name").value.trim().toUpperCase(),
+        english_nickname: document.getElementById("english_nickname").value.trim() || null,
+        date_of_birth: document.getElementById("date_of_birth").value || null,
+        passport_number: cleanPassport(document.getElementById("passport_number").value) || null,
+        gender: document.getElementById("gender").value,
+        nationality: document.getElementById("nationality").value.trim() || null,
+        course_type: selectedCourse ? selectedCourse.value : (document.getElementById("course_type").value || null),
+        course_start_date: document.getElementById("course_start_date").value || null,
+        duration_weeks: parseInt(document.getElementById("duration_weeks").value) || null,
+        course_end_date: document.getElementById("course_end_date").value || null,
+        allergies: document.getElementById("allergies").value.trim() || null,
+        home_address_english: document.getElementById("home_address_english").value.trim() || null,
+        guardian_name: document.getElementById("guardian_name").value.trim() || null,
+        guardian_tel: document.getElementById("guardian_tel").value.trim() || null,
+        guardian_email: document.getElementById("guardian_email").value.trim() || null,
+        guardian_line_id: document.getElementById("guardian_line_id").value.trim() || null,
+        guardian_speaks_english: document.getElementById("guardian_speaks_english").value,
+        flight_option_id: selectedId,
+        flight_out_date: document.getElementById("flight_out_date").value || null,
+        flight_return_date: match ? match.return_date : null,
+        flight_arrangement: selectedId ? "Standard Return" : (document.getElementById("flight_arrangement").value || null),
+        custom_outbound_date: document.getElementById("custom_outbound_date").value || null,
+        custom_outbound_flight_number: document.getElementById("custom_outbound_flight_number").value.trim() || null,
+        other_plans_notes: document.getElementById("other_plans_notes").value.trim() || null,
+        notes: document.getElementById("notes").value.trim() || null,
+        status: status,
+        updated_at: new Date().toISOString(),
+        submitted_at: status === "Submitted" ? new Date().toISOString() : null
+      };
+    }
+
+    async function submitForm(status) {
+      if (!validate(status)) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      const data = getFormData(status);
+      const btn = status === "Submitted" ? document.getElementById("btn-submit") : document.getElementById("btn-draft");
+      btn.disabled = true;
+      try {
+        const { error } = await supabaseClient.from("registrations").insert([data]);
+        if (error) throw error;
+        if (status === "Submitted") {
+          localStorage.removeItem("ambex_draft");
+          document.getElementById("form-container").style.display = "none";
+          document.getElementById("footer-actions").style.display = "none";
+          document.getElementById("success-screen").style.display = "block";
+        } else {
+          saveDraftLocally();
+          alert("Draft saved. It will also appear in Daddy English Administration.");
+        }
+      } catch (err) {
+        document.getElementById("global-error").textContent = "Could not save. Please check your internet connection and try again.";
+        document.getElementById("global-error").style.display = "block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById("date_of_birth").addEventListener("change", () => { updateCourses(); refreshDateLabels(); });
+    document.getElementById("course_start_date").addEventListener("change", () => { endDateManuallyEdited = false; updateEndDate(); });
+    document.getElementById("duration_weeks").addEventListener("input", () => { endDateManuallyEdited = false; updateEndDate(); });
+    document.getElementById("course_end_date").addEventListener("change", () => { endDateManuallyEdited = true; refreshDateLabels(); });
+    document.querySelectorAll('input[name="date_mode"]').forEach(el => el.addEventListener("change", applyDateMode));
+    document.getElementById("flight_out_date").addEventListener("change", populateReturnDates);
+    document.getElementById("flight_return_date").addEventListener("change", updateFlightArrangementUI);
+    document.getElementById("flight_arrangement").addEventListener("change", updateFlightArrangementUI);
+    document.getElementById("custom_outbound_date").addEventListener("change", refreshDateLabels);
+    document.getElementById("passport_number").addEventListener("input", function() {
+      showFieldError("passport_number", this.value && this.value !== cleanPassport(this.value));
+    });
+    document.querySelectorAll("#form-container input, #form-container select, #form-container textarea").forEach(el => {
+      if (el.id === "notes") return;
+      el.addEventListener("input", () => checkEnglishLive(el));
+      el.addEventListener("change", () => checkEnglishLive(el));
+    });
+    document.getElementById("btn-draft").addEventListener("click", () => submitForm("Draft"));
+    document.getElementById("btn-submit").addEventListener("click", () => submitForm("Submitted"));
+
+    (async function start() {
+      await loadFlightOptions();
+      await loadCourseDateOptions();
+      loadDraft();
+      updateCourses();
+      applyDateMode();
+      refreshDateLabels();
+    })();
+  </script>
+</body>
+</html>

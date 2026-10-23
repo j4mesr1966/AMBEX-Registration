@@ -48,7 +48,7 @@
       margin-bottom: 6px;
       background: #fff;
     }
-    .radio-row {
+    .radio-row, .check-row {
       display: flex;
       gap: 10px;
       align-items: flex-start;
@@ -58,8 +58,8 @@
       border-radius: 8px;
       background: #fff;
     }
-    .radio-row input { width: auto; margin: 3px 0 0; padding: 0; }
-    .radio-row span { font-size: 0.9rem; }
+    .radio-row input, .check-row input { width: auto; margin: 3px 0 0; padding: 0; }
+    .radio-row span, .check-row span { font-size: 0.9rem; }
     .field-error { color: var(--danger); font-size: 0.8rem; margin-bottom: 12px; display: none; }
     textarea { min-height: 80px; resize: vertical; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -111,6 +111,7 @@
     .footer-actions .btn { flex: 1; }
     .success-screen { display: none; text-align: center; padding: 60px 20px; }
     .hidden { display: none !important; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -131,7 +132,6 @@
 
       <label>English Nickname</label>
       <input type="text" id="english_nickname" placeholder="e.g. Kevin" />
-      <div class="field-error" id="err-english_nickname">English characters only</div>
 
       <label class="required">Date of Birth</label>
       <input type="date" id="date_of_birth" />
@@ -157,13 +157,18 @@
     </div>
 
     <div class="card">
-      <h2>2. Course &amp; Trip</h2>
+      <h2>2. Course & Trip</h2>
       <div id="age-display" class="age-badge">Age on 6 Jul 2026: —</div>
       <div id="age-warning" class="warning hidden"></div>
 
-      <label>Course Type</label>
-      <div id="course_radios"></div>
+      <label>Course Type (select all that apply)</label>
+      <div id="course_checks"></div>
       <input type="hidden" id="course_type" />
+
+      <div id="course-other-wrap" class="hidden">
+        <label>If Other, please specify the course</label>
+        <input type="text" id="course_other" />
+      </div>
 
       <label>Date selection</label>
       <label class="radio-row">
@@ -196,33 +201,109 @@
       <input type="date" id="course_end_date" />
       <div class="date-fmt" id="course_end_date_fmt">—</div>
       <p class="subtitle" id="end-hint">Default dates come from Daddy English Administration. You can override them.</p>
+
+      <div class="row">
+        <div>
+          <label>Age at course start</label>
+          <input type="text" id="age_at_start" readonly />
+        </div>
+        <div>
+          <label>Age at course end</label>
+          <input type="text" id="age_at_end" readonly />
+        </div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="over18-card">
+      <h2>Over 18 contact</h2>
+      <label>Student contact tel</label>
+      <input type="tel" id="student_tel" />
+      <label>Student email</label>
+      <input type="email" id="student_email" />
     </div>
 
     <div class="card">
-      <h2>3. Medical &amp; Dietary</h2>
+      <h2>3. Permissions</h2>
+      <label class="required">Permission to go out without supervision (14-16)</label>
+      <select id="permission_unsupervised">
+        <option value="YES">YES</option>
+        <option value="NO">NO</option>
+        <option value="Not applicable">Not applicable</option>
+      </select>
+      <label class="required">Permission for Anglo photography / video / social media</label>
+      <select id="permission_anglo_media">
+        <option value="YES">YES</option>
+        <option value="NO">NO</option>
+      </select>
+      <label class="required">Permission for AMBEX to take student out</label>
+      <select id="permission_ambex_outing">
+        <option value="YES">YES</option>
+        <option value="NO">NO</option>
+        <option value="Not applicable">Not applicable (17+)</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <h2>4. Host family request</h2>
+      <label class="required">Does the student require a host family?</label>
+      <select id="requires_host_family">
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+      <div id="host-request-wrap">
+        <label>Host family from date</label>
+        <input type="date" id="host_family_from" />
+        <div class="date-fmt" id="host_family_from_fmt">—</div>
+        <label>Host family leave date</label>
+        <input type="date" id="host_family_leave" />
+        <div class="date-fmt" id="host_family_leave_fmt">—</div>
+        <label>Homestay pairing request (optional)</label>
+        <input type="text" id="homestay_pairing" placeholder="e.g. CHING-HSIN LIN" />
+        <label>Prefer a family with a pet?</label>
+        <select id="host_family_pet">
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+          <option value="Don't care">Don't care</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>5. Medical, dietary & learning</h2>
       <label>Allergies / Special requirements</label>
       <textarea id="allergies" placeholder="Leave blank if none"></textarea>
+      <label>Medical issues</label>
+      <textarea id="medical_issues" placeholder="Leave blank if none"></textarea>
+      <label>Special dietary requirements</label>
+      <textarea id="dietary_requirements" placeholder="Leave blank if none"></textarea>
+      <label>Learning disabilities</label>
+      <textarea id="learning_disabilities" placeholder="Leave blank if none"></textarea>
+      <label>Medications</label>
+      <textarea id="medications" placeholder="Leave blank if none"></textarea>
     </div>
 
     <div class="card">
-      <h2>4. Home Address</h2>
+      <h2>6. Home Address</h2>
       <label class="required">Address (English characters only)</label>
+      <p class="hint">Use the Taiwan Post Office translation if needed: post.gov.tw</p>
       <textarea id="home_address_english"></textarea>
       <div class="field-error" id="err-home_address_english">Address is required</div>
     </div>
 
     <div class="card">
-      <h2>5. Parent / Guardian</h2>
+      <h2>7. Parent / Guardian (Next of Kin)</h2>
       <label class="required">Guardian Full Name</label>
       <input type="text" id="guardian_name" />
       <div class="field-error" id="err-guardian_name">Guardian name is required</div>
+      <label class="required">Relationship to student</label>
+      <input type="text" id="next_of_kin_relationship" placeholder="e.g. Mother" />
       <label class="required">Mobile Phone</label>
       <input type="tel" id="guardian_tel" placeholder="+886912345678" />
       <div class="field-error" id="err-guardian_tel">Enter a valid phone number</div>
       <label class="required">Email</label>
       <input type="email" id="guardian_email" />
       <div class="field-error" id="err-guardian_email">Enter a valid email address</div>
-      <label>LINE ID</label>
+      <label class="required">LINE ID / name</label>
       <input type="text" id="guardian_line_id" />
       <label class="required">Can guardian speak English?</label>
       <select id="guardian_speaks_english">
@@ -232,21 +313,33 @@
     </div>
 
     <div class="card">
-      <h2>6. Flight Details</h2>
+      <h2>8. Parent & Child Program</h2>
+      <label class="required">Join the Parent and Child Program?</label>
+      <select id="parent_child_program">
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+      <label class="required">Accompany the child but NOT join the program?</label>
+      <select id="accompany_not_program">
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <h2>9. Flight Details</h2>
       <label>Standard Flight Out Date</label>
       <select id="flight_out_date">
         <option value="">Select a flight out date...</option>
       </select>
       <div class="date-fmt" id="flight_out_date_fmt">—</div>
-
       <div id="return-wrap" class="hidden">
-        <label>Associated Flight Return Date</label>
+        <label>Flight Return Date</label>
         <select id="flight_return_date">
           <option value="">I do not want the standard return</option>
         </select>
         <div class="date-fmt" id="flight_return_date_fmt">—</div>
       </div>
-
       <div id="alt-wrap" class="hidden">
         <label>If not using the standard return</label>
         <select id="flight_arrangement">
@@ -270,7 +363,7 @@
     </div>
 
     <div class="card">
-      <h2>7. Notes</h2>
+      <h2>10. Notes</h2>
       <label>Notes</label>
       <textarea id="notes" placeholder="You may use any language in this box"></textarea>
     </div>
@@ -294,6 +387,21 @@
     const TRIP_START = new Date("2026-07-06");
     const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+    const COURSE_OPTIONS = [
+      "C-2.20 (20 lessons) - 10-16 - English with full activity schedule",
+      "V-2.20 (20 lessons) - 16-17 - English with full activity schedule",
+      "G-1.20 (20 lessons) - 16+ - English course (15 hrs a week)",
+      "G-1.30 (30 lessons) - 16+ - Intensive English course (22.5 hrs a week)",
+      "IELTS (30 lessons - 20 General Eng + 10 exam practice) - 16-17",
+      "Cambridge B1 (30 lessons - 20 General Eng + 10 exam practice) - 16+",
+      "Cambridge B2 (30 lessons - 20 General Eng + 10 exam practice) - 16+",
+      "Cambridge C1 (30 lessons - 20 General Eng + 10 exam practice) - 16+",
+      "Over 50s (20 lessons) - 50+",
+      "Eng teaching (20 lessons) - 20+",
+      "X-2.30 IELTS Examination Practice and Intensive English",
+      "Other (please specify)"
+    ];
+
     let flightOptions = [];
     let courseDateOptions = [];
     let endDateManuallyEdited = false;
@@ -301,6 +409,46 @@
     function isEnglishOnly(value) {
       if (!value) return true;
       return /^[\x20-\x7E]*$/.test(value);
+    }
+    function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || ""); }
+    function isValidPhone(phone) { return /^\+?[0-9\s\-]{7,20}$/.test(phone || ""); }
+    function cleanPassport(value) { return (value || "").replace(/[^0-9]/g, ""); }
+    function formatDateDisplay(iso) {
+      if (!iso) return "—";
+      const d = new Date(String(iso).slice(0, 10) + "T00:00:00");
+      if (isNaN(d)) return "—";
+      return `${String(d.getDate()).padStart(2, "0")}-${MONTHS[d.getMonth()]}-${d.getFullYear()}`;
+    }
+    function isoFromDate(d) { return d.toISOString().split("T")[0]; }
+    function calculatedEndDate(startIso, weeks) {
+      if (!startIso || !weeks) return "";
+      const start = new Date(startIso + "T00:00:00");
+      start.setDate(start.getDate() + (weeks * 7) - 3);
+      return isoFromDate(start);
+    }
+    function dateMode() {
+      const el = document.querySelector('input[name="date_mode"]:checked');
+      return el ? el.value : "default";
+    }
+    function calculateAge(dob, onDate) {
+      if (!dob || !onDate) return null;
+      const born = new Date(dob);
+      const on = new Date(onDate);
+      let age = on.getFullYear() - born.getFullYear();
+      const m = on.getMonth() - born.getMonth();
+      if (m < 0 || (m === 0 && on.getDate() < born.getDate())) age--;
+      return age;
+    }
+    function ageYearsMonths(dob, onDate) {
+      if (!dob || !onDate) return "";
+      const born = new Date(dob);
+      const on = new Date(onDate);
+      let years = on.getFullYear() - born.getFullYear();
+      let months = on.getMonth() - born.getMonth();
+      if (on.getDate() < born.getDate()) months--;
+      if (months < 0) { years--; months += 12; }
+      if (years < 0) return "";
+      return `${years} years ${months} months`;
     }
 
     function checkEnglishLive(el) {
@@ -325,37 +473,8 @@
       }
     }
 
-    function formatDateDisplay(iso) {
-      if (!iso) return "—";
-      const d = new Date(String(iso).slice(0, 10) + "T00:00:00");
-      if (isNaN(d)) return "—";
-      return `${String(d.getDate()).padStart(2, "0")}-${MONTHS[d.getMonth()]}-${d.getFullYear()}`;
-    }
-    function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || ""); }
-    function isValidPhone(phone) { return /^\+?[0-9\s\-]{7,20}$/.test(phone || ""); }
-    function cleanPassport(value) { return (value || "").replace(/[^0-9]/g, ""); }
-    function calculateAge(dob) {
-      if (!dob) return null;
-      const born = new Date(dob);
-      let age = TRIP_START.getFullYear() - born.getFullYear();
-      const m = TRIP_START.getMonth() - born.getMonth();
-      if (m < 0 || (m === 0 && TRIP_START.getDate() < born.getDate())) age--;
-      return age;
-    }
-    function isoFromDate(d) { return d.toISOString().split("T")[0]; }
-    function calculatedEndDate(startIso, weeks) {
-      if (!startIso || !weeks) return "";
-      const start = new Date(startIso + "T00:00:00");
-      start.setDate(start.getDate() + (weeks * 7) - 3);
-      return isoFromDate(start);
-    }
-    function dateMode() {
-      const el = document.querySelector('input[name="date_mode"]:checked');
-      return el ? el.value : "default";
-    }
-
     function refreshDateLabels() {
-      ["date_of_birth","course_start_date","course_end_date","flight_out_date","custom_outbound_date"].forEach(id => {
+      ["date_of_birth","course_start_date","course_end_date","flight_out_date","custom_outbound_date","host_family_from","host_family_leave"].forEach(id => {
         const fmt = document.getElementById(id + "_fmt");
         const el = document.getElementById(id);
         if (fmt && el) fmt.textContent = formatDateDisplay(el.value);
@@ -365,75 +484,65 @@
       document.getElementById("flight_return_date_fmt").textContent = match ? formatDateDisplay(match.return_date) : "—";
     }
 
-    function courseOptionsForAge(age) {
-      if (age === null) return [];
-      if (age < 10) return ["C-2.20 (20 lessons) - 10-16 years old - English with full activity schedule"];
-      if (age <= 13) return ["C-2.20 (20 lessons) - 10-16 years old - English with full activity schedule"];
-      if (age <= 15) return [
-        "C-2.20 (20 lessons) - 10-16 years old - English with full activity schedule",
-        "C-2.30 (30 lessons) - 14-16 years old - Intensive English with full activity schedule"
-      ];
-      if (age <= 17) return [
-        "V-2.20 (20 lessons) - 16-17 years old - English with full activity schedule",
-        "V-2.30 (30 lessons) - 16-17 years old - Intensive English with full activity schedule"
-      ];
-      return [
-        "G-1.20 (20 lessons) - 16+ years old - English course (Adults / Parents)",
-        "G-1.30 (30 lessons) - 16+ years old - Intensive English course (Adults / Parents)",
-        "I-1.30 (30 lessons) - 16+ years old - IELTS Preparation"
-      ];
+    function updateAges() {
+      const dob = document.getElementById("date_of_birth").value;
+      const start = document.getElementById("course_start_date").value;
+      const end = document.getElementById("course_end_date").value;
+      const ageOnTrip = calculateAge(dob, "2026-07-06");
+      document.getElementById("age-display").textContent = ageOnTrip === null ? "Age on 6 Jul 2026: —" : `Age on 6 Jul 2026: ${ageOnTrip} years old`;
+      const warning = document.getElementById("age-warning");
+      if (ageOnTrip !== null && ageOnTrip < 10) {
+        warning.textContent = "Daddy English will contact you to discuss these requirements in more detail";
+        warning.classList.remove("hidden");
+      } else {
+        warning.classList.add("hidden");
+      }
+      document.getElementById("age_at_start").value = ageYearsMonths(dob, start);
+      document.getElementById("age_at_end").value = ageYearsMonths(dob, end);
+      const startAge = calculateAge(dob, start);
+      document.getElementById("over18-card").classList.toggle("hidden", !(startAge !== null && startAge >= 18));
     }
 
-    function updateCourses() {
-      const dob = document.getElementById("date_of_birth").value;
-      const age = calculateAge(dob);
-      const ageDisplay = document.getElementById("age-display");
-      const ageWarning = document.getElementById("age-warning");
-      const wrap = document.getElementById("course_radios");
-      const current = document.getElementById("course_type").value;
+    function selectedCourses() {
+      return [...document.querySelectorAll('input[name="course_check"]:checked')].map(el => el.value);
+    }
 
-      if (age === null) {
-        ageDisplay.textContent = "Age on 6 Jul 2026: —";
-        ageWarning.classList.add("hidden");
-        wrap.innerHTML = "<p class='subtitle'>Select date of birth first</p>";
-        return;
-      }
-
-      ageDisplay.textContent = `Age on 6 Jul 2026: ${age} years old`;
-      if (age < 10) {
-        ageWarning.textContent = "Daddy English will contact you to discuss these requirements in more detail";
-        ageWarning.classList.remove("hidden");
-      } else {
-        ageWarning.classList.add("hidden");
-      }
-
-      const options = courseOptionsForAge(age);
-      wrap.innerHTML = options.map((o, i) => `
-        <label class="radio-row">
-          <input type="radio" name="course_type_radio" value="${o.replace(/"/g, "&quot;")}" ${((current === o) || (!current && i === 0)) ? "checked" : ""} />
+    function renderCourses() {
+      const wrap = document.getElementById("course_checks");
+      const current = (document.getElementById("course_type").value || "").split(" | ").filter(Boolean);
+      wrap.innerHTML = COURSE_OPTIONS.map(o => `
+        <label class="check-row">
+          <input type="checkbox" name="course_check" value="${o.replace(/"/g, """)}" ${current.includes(o) ? "checked" : ""} />
           <span>${o}</span>
         </label>
       `).join("");
-      const selected = document.querySelector('input[name="course_type_radio"]:checked');
-      document.getElementById("course_type").value = selected ? selected.value : "";
-      wrap.querySelectorAll('input[name="course_type_radio"]').forEach(r => {
-        r.addEventListener("change", () => { document.getElementById("course_type").value = r.value; });
+      wrap.querySelectorAll('input[name="course_check"]').forEach(el => {
+        el.addEventListener("change", syncCourseSelection);
       });
-      updateFlightArrangementUI();
+      syncCourseSelection();
+    }
+
+    function syncCourseSelection() {
+      const selected = selectedCourses();
+      document.getElementById("course_type").value = selected.join(" | ");
+      document.getElementById("course-other-wrap").classList.toggle("hidden", !selected.includes("Other (please specify)"));
     }
 
     function updateEndDate(force) {
       if (dateMode() === "custom" && endDateManuallyEdited && !force) {
+        updateAges();
         refreshDateLabels();
         return;
       }
       if (dateMode() === "default") {
+        updateAges();
         refreshDateLabels();
         return;
       }
       const start = document.getElementById("course_start_date").value;
       const weeks = parseInt(document.getElementById("duration_weeks").value) || 0;
       document.getElementById("course_end_date").value = calculatedEndDate(start, weeks);
+      updateAges();
       refreshDateLabels();
     }
 
@@ -476,6 +585,7 @@
       document.getElementById("duration_weeks").value = option.duration_weeks;
       document.getElementById("course_end_date").value = String(option.end_date).slice(0, 10);
       endDateManuallyEdited = true;
+      updateAges();
       refreshDateLabels();
     }
 
@@ -493,6 +603,10 @@
         endDateManuallyEdited = false;
         updateEndDate(true);
       }
+    }
+
+    function toggleHostRequest() {
+      document.getElementById("host-request-wrap").classList.toggle("hidden", document.getElementById("requires_host_family").value !== "Yes");
     }
 
     async function loadFlightOptions() {
@@ -543,7 +657,7 @@
       const ret = document.getElementById("flight_return_date").value;
       const arrangement = document.getElementById("flight_arrangement");
       const otherOption = arrangement.querySelector('option[value="Other Plans"]');
-      const age = calculateAge(document.getElementById("date_of_birth").value);
+      const age = calculateAge(document.getElementById("date_of_birth").value, "2026-07-06");
       if (otherOption) {
         otherOption.disabled = !(age !== null && age >= 16);
         if (otherOption.disabled && arrangement.value === "Other Plans") arrangement.value = "";
@@ -560,9 +674,14 @@
 
     const FIELDS = [
       "surname","first_name","english_nickname","date_of_birth","passport_number","gender","nationality",
-      "course_type","course_start_date","duration_weeks","course_end_date",
-      "allergies","home_address_english",
-      "guardian_name","guardian_tel","guardian_email","guardian_line_id","guardian_speaks_english",
+      "course_type","course_other","course_start_date","duration_weeks","course_end_date","age_at_start","age_at_end",
+      "student_tel","student_email",
+      "permission_unsupervised","permission_anglo_media","permission_ambex_outing",
+      "requires_host_family","host_family_from","host_family_leave","homestay_pairing","host_family_pet",
+      "allergies","medical_issues","dietary_requirements","learning_disabilities","medications",
+      "home_address_english",
+      "guardian_name","next_of_kin_relationship","guardian_tel","guardian_email","guardian_line_id","guardian_speaks_english",
+      "parent_child_program","accompany_not_program",
       "flight_out_date","flight_return_date","flight_arrangement",
       "custom_outbound_date","custom_outbound_flight_number","other_plans_notes","notes"
     ];
@@ -587,8 +706,9 @@
           const modeEl = document.querySelector(`input[name="date_mode"][value="${data.date_mode}"]`);
           if (modeEl) modeEl.checked = true;
         }
-        updateCourses();
+        renderCourses();
         applyDateMode();
+        toggleHostRequest();
         populateReturnDates();
       } catch (e) {}
     }
@@ -624,7 +744,6 @@
       clearAllErrors();
       let valid = validateEnglishFields();
       if (status !== "Submitted") return valid;
-
       const surname = document.getElementById("surname").value.trim();
       const firstName = document.getElementById("first_name").value.trim();
       const dob = document.getElementById("date_of_birth").value;
@@ -641,8 +760,7 @@
       if (!gName) { showFieldError("guardian_name"); valid = false; }
       if (!gTel || !isValidPhone(gTel)) { showFieldError("guardian_tel"); valid = false; }
       if (!gEmail || !isValidEmail(gEmail)) { showFieldError("guardian_email"); valid = false; }
-
-      const age = calculateAge(dob);
+      const age = calculateAge(dob, "2026-07-06");
       const arrangement = document.getElementById("flight_arrangement").value;
       if (arrangement === "Other Plans" && !(age !== null && age >= 16)) {
         document.getElementById("global-error").textContent = "Other Plans is only available for students aged 16+.";
@@ -655,7 +773,6 @@
     function getFormData(status) {
       const selectedId = document.getElementById("flight_return_date").value || null;
       const match = flightOptions.find(f => f.id === selectedId);
-      const selectedCourse = document.querySelector('input[name="course_type_radio"]:checked');
       return {
         surname: document.getElementById("surname").value.trim().toUpperCase(),
         first_name: document.getElementById("first_name").value.trim().toUpperCase(),
@@ -664,17 +781,37 @@
         passport_number: cleanPassport(document.getElementById("passport_number").value) || null,
         gender: document.getElementById("gender").value,
         nationality: document.getElementById("nationality").value.trim() || null,
-        course_type: selectedCourse ? selectedCourse.value : (document.getElementById("course_type").value || null),
+        course_type: selectedCourses().join(" | ") || null,
+        course_other: document.getElementById("course_other").value.trim() || null,
         course_start_date: document.getElementById("course_start_date").value || null,
         duration_weeks: parseInt(document.getElementById("duration_weeks").value) || null,
         course_end_date: document.getElementById("course_end_date").value || null,
+        age_at_start: document.getElementById("age_at_start").value || null,
+        age_at_end: document.getElementById("age_at_end").value || null,
+        student_tel: document.getElementById("student_tel").value.trim() || null,
+        student_email: document.getElementById("student_email").value.trim() || null,
+        permission_unsupervised: document.getElementById("permission_unsupervised").value,
+        permission_anglo_media: document.getElementById("permission_anglo_media").value,
+        permission_ambex_outing: document.getElementById("permission_ambex_outing").value,
+        requires_host_family: document.getElementById("requires_host_family").value,
+        host_family_from: document.getElementById("host_family_from").value || null,
+        host_family_leave: document.getElementById("host_family_leave").value || null,
+        homestay_pairing: document.getElementById("homestay_pairing").value.trim() || null,
+        host_family_pet: document.getElementById("host_family_pet").value,
         allergies: document.getElementById("allergies").value.trim() || null,
+        medical_issues: document.getElementById("medical_issues").value.trim() || null,
+        dietary_requirements: document.getElementById("dietary_requirements").value.trim() || null,
+        learning_disabilities: document.getElementById("learning_disabilities").value.trim() || null,
+        medications: document.getElementById("medications").value.trim() || null,
         home_address_english: document.getElementById("home_address_english").value.trim() || null,
         guardian_name: document.getElementById("guardian_name").value.trim() || null,
+        next_of_kin_relationship: document.getElementById("next_of_kin_relationship").value.trim() || null,
         guardian_tel: document.getElementById("guardian_tel").value.trim() || null,
         guardian_email: document.getElementById("guardian_email").value.trim() || null,
         guardian_line_id: document.getElementById("guardian_line_id").value.trim() || null,
         guardian_speaks_english: document.getElementById("guardian_speaks_english").value,
+        parent_child_program: document.getElementById("parent_child_program").value,
+        accompany_not_program: document.getElementById("accompany_not_program").value,
         flight_option_id: selectedId,
         flight_out_date: document.getElementById("flight_out_date").value || null,
         flight_return_date: match ? match.return_date : null,
@@ -718,11 +855,14 @@
       }
     }
 
-    document.getElementById("date_of_birth").addEventListener("change", () => { updateCourses(); refreshDateLabels(); });
+    document.getElementById("date_of_birth").addEventListener("change", () => { updateAges(); refreshDateLabels(); });
     document.getElementById("course_start_date").addEventListener("change", () => { endDateManuallyEdited = false; updateEndDate(); });
     document.getElementById("duration_weeks").addEventListener("input", () => { endDateManuallyEdited = false; updateEndDate(); });
-    document.getElementById("course_end_date").addEventListener("change", () => { endDateManuallyEdited = true; refreshDateLabels(); });
+    document.getElementById("course_end_date").addEventListener("change", () => { endDateManuallyEdited = true; updateAges(); refreshDateLabels(); });
     document.querySelectorAll('input[name="date_mode"]').forEach(el => el.addEventListener("change", applyDateMode));
+    document.getElementById("requires_host_family").addEventListener("change", toggleHostRequest);
+    document.getElementById("host_family_from").addEventListener("change", refreshDateLabels);
+    document.getElementById("host_family_leave").addEventListener("change", refreshDateLabels);
     document.getElementById("flight_out_date").addEventListener("change", populateReturnDates);
     document.getElementById("flight_return_date").addEventListener("change", updateFlightArrangementUI);
     document.getElementById("flight_arrangement").addEventListener("change", updateFlightArrangementUI);
@@ -741,9 +881,11 @@
     (async function start() {
       await loadFlightOptions();
       await loadCourseDateOptions();
+      renderCourses();
       loadDraft();
-      updateCourses();
       applyDateMode();
+      toggleHostRequest();
+      updateAges();
       refreshDateLabels();
     })();
   </script>

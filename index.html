@@ -440,8 +440,9 @@
     }
     function ageYearsMonths(dob, onDate) {
       if (!dob || !onDate) return "";
-      const born = new Date(dob);
-      const on = new Date(onDate);
+      const born = new Date(String(dob).slice(0, 10) + "T00:00:00");
+      const on = new Date(String(onDate).slice(0, 10) + "T00:00:00");
+      if (isNaN(born) || isNaN(on)) return "";
       let years = on.getFullYear() - born.getFullYear();
       let months = on.getMonth() - born.getMonth();
       if (on.getDate() < born.getDate()) months--;
@@ -512,7 +513,7 @@
       const current = (document.getElementById("course_type").value || "").split(" | ").filter(Boolean);
       wrap.innerHTML = COURSE_OPTIONS.map(o => `
         <label class="check-row">
-          <input type="checkbox" name="course_check" value="${o.replace(/"/g, """)}" ${current.includes(o) ? "checked" : ""} />
+          <input type="checkbox" name="course_check" value="${o.replace(/"/g, '"')}" ${current.includes(o) ? "checked" : ""} />
           <span>${o}</span>
         </label>
       `).join("");
@@ -762,7 +763,7 @@
         document.getElementById("global-error").style.display = "block";
         valid = false;
       }
-      if (!datesMatchDuration()) {
+      if (dateMode() === "custom" && !datesMatchDuration()) {
         document.getElementById("global-error").textContent = "Course duration does not match the Course Start Date and Course End Date. Please check the weeks.";
         document.getElementById("global-error").style.display = "block";
         valid = false;
@@ -846,7 +847,7 @@
           alert("Draft saved. It will also appear in Daddy English Administration.");
         }
       } catch (err) {
-        document.getElementById("global-error").textContent = "Could not save. Please check your internet connection and try again.";
+        document.getElementById("global-error").textContent = "Could not save: " + (err.message || err.details || JSON.stringify(err));
         document.getElementById("global-error").style.display = "block";
         window.scrollTo({ top: 0, behavior: "smooth" });
       } finally {
@@ -854,8 +855,8 @@
       }
     }
 
-    document.getElementById("date_of_birth").addEventListener("change", () => { updateAges(); refreshDateLabels(); });
-    document.getElementById("course_start_date").addEventListener("change", () => { endDateManuallyEdited = false; updateEndDate(); });
+    document.getElementById("date_of_birth").addEventListener("change", () => { updateEndDate(true); updateAges(); refreshDateLabels(); });
+    document.getElementById("course_start_date").addEventListener("change", () => { endDateManuallyEdited = false; updateEndDate(true); });
     document.getElementById("duration_weeks").addEventListener("input", () => { endDateManuallyEdited = false; updateEndDate(true); });
     document.getElementById("course_end_date").addEventListener("change", () => { endDateManuallyEdited = true; updateAges(); refreshDateLabels(); });
     document.querySelectorAll('input[name="date_mode"]').forEach(el => el.addEventListener("change", applyDateMode));

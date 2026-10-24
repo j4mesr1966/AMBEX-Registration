@@ -1,894 +1,636 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>AMBEX Registration</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    :root {
-      --primary: #06C755;
-      --primary-dark: #05a548;
-      --bg: #f7f8fa;
-      --card: #ffffff;
-      --text: #111;
-      --muted: #666;
-      --border: #e5e7eb;
-      --danger: #e11d48;
-      --radius: 12px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      padding: 16px;
-      padding-bottom: 120px;
-    }
-    .container { max-width: 480px; margin: 0 auto; }
-    h1 { font-size: 1.4rem; margin-bottom: 4px; }
-    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
-    .card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    }
-    .card h2 { font-size: 1.05rem; margin-bottom: 16px; }
-    label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; }
-    .required::after { content: " *"; color: var(--danger); }
-    input, select, textarea {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 1rem;
-      margin-bottom: 6px;
-      background: #fff;
-    }
-    .radio-row, .check-row {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      margin-bottom: 10px;
-      padding: 10px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #fff;
-    }
-    .radio-row input, .check-row input { width: auto; margin: 3px 0 0; padding: 0; }
-    .radio-row span, .check-row span { font-size: 0.9rem; }
-    .field-error { color: var(--danger); font-size: 0.8rem; margin-bottom: 12px; display: none; }
-    textarea { min-height: 80px; resize: vertical; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .date-fmt, .age-badge {
-      display: inline-block;
-      background: #e8f5e9;
-      color: #2e7d32;
-      font-size: 0.8rem;
-      padding: 3px 8px;
-      border-radius: 20px;
-      margin-bottom: 12px;
-    }
-    .warning {
-      background: #fff3cd;
-      color: #856404;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      margin-bottom: 14px;
-    }
-    .error-box {
-      background: #fef2f2;
-      color: var(--danger);
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      margin-bottom: 16px;
-      display: none;
-    }
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 16px;
-      border: none;
-      border-radius: 10px;
-      font-size: 1.05rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-secondary { background: #f3f4f6; color: #333; }
-    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
-    .footer-actions {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: white; padding: 12px 16px;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
-      display: flex; gap: 10px; z-index: 100;
-    }
-    .footer-actions .btn { flex: 1; }
-    .success-screen { display: none; text-align: center; padding: 60px 20px; }
-    .hidden { display: none !important; }
-    .hint { font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; }
-  </style>
-</head>
-<body>
-  <div class="container" id="form-container">
-    <h1>AMBEX Registration</h1>
-    <p class="subtitle">Please use English characters only, except in Notes. Dates are shown as DD-MMM-YYYY.</p>
-    <div id="global-error" class="error-box"></div>
+import streamlit as st
+import pandas as pd
+import requests
+from supabase import create_client, Client
+from datetime import datetime, date as date_cls, timedelta
 
-    <div class="card">
-      <h2>1. Core Identity</h2>
-      <label class="required">Surname / Family Name</label>
-      <input type="text" id="surname" placeholder="e.g. WANG" />
-      <div class="field-error" id="err-surname">Surname is required</div>
+SHEET_REFRESH_URL = "https://script.google.com/macros/s/AKfycbyvy4ax3fSugB4eaekhLrW4HUmKTloqzlo16Ix0K0YPV5n2XQlNOMOY1t9jHkHHlnxTEw/exec"
 
-      <label class="required">First Name</label>
-      <input type="text" id="first_name" placeholder="e.g. WEI" />
-      <div class="field-error" id="err-first_name">First name is required</div>
+def refresh_sheet():
+    try:
+        requests.get(SHEET_REFRESH_URL, timeout=30)
+    except Exception:
+        pass
 
-      <label>English Nickname</label>
-      <input type="text" id="english_nickname" placeholder="e.g. Kevin" />
+SUPABASE_URL = "https://bwhkccfwzsvjtsaqvhyy.supabase.co"
+SUPABASE_KEY = "sb_publishable_LdjLR-FIesLKwuqtQzHDpg_C-OIdGgg"
 
-      <label class="required">Date of Birth</label>
-      <input type="date" id="date_of_birth" />
-      <div class="date-fmt" id="date_of_birth_fmt">—</div>
-      <div class="field-error" id="err-date_of_birth">Date of birth is required</div>
+st.set_page_config(
+    page_title="Daddy English Administration",
+    page_icon="📋",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
-      <div class="row">
-        <div>
-          <label>Passport Number</label>
-          <input type="text" id="passport_number" inputmode="numeric" placeholder="Numbers only" />
-          <div class="field-error" id="err-passport_number">Only numbers allowed</div>
-        </div>
-        <div>
-          <label class="required">Gender</label>
-          <select id="gender">
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </div>
-      </div>
-      <label>Nationality</label>
-      <input type="text" id="nationality" value="Taiwanese" />
-    </div>
+st.title("Daddy English Administration")
+st.caption("Mobile-friendly registration admin")
 
-    <div class="card">
-      <h2>2. Course & Trip</h2>
-      <div id="age-display" class="age-badge">Age on 6 Jul 2026: —</div>
-      <div id="age-warning" class="warning hidden"></div>
 
-      <label>Course Type (select all that apply)</label>
-      <div id="course_checks"></div>
-      <input type="hidden" id="course_type" />
+def get_app_password():
+    try:
+        return st.secrets["APP_PASSWORD"]
+    except Exception:
+        return "Matthew"
 
-      <div id="course-other-wrap" class="hidden">
-        <label>If Other, please specify the course</label>
-        <input type="text" id="course_other" />
-      </div>
 
-      <label>Date selection</label>
-      <label class="radio-row">
-        <input type="radio" name="date_mode" value="default" checked />
-        <span>Use a default course date</span>
-      </label>
-      <label class="radio-row">
-        <input type="radio" name="date_mode" value="custom" />
-        <span>Choose my own Course Start Date and Course End Date</span>
-      </label>
+def check_password():
+    if st.session_state.get("password_ok"):
+        return True
+    st.text_input("Password", type="password", key="admin_password")
+    if st.button("Log in"):
+        if st.session_state.get("admin_password") == get_app_password():
+            st.session_state["password_ok"] = True
+            st.rerun()
+        else:
+            st.error("Incorrect password")
+    return False
 
-      <div id="default-dates-wrap">
-        <label>Default course dates</label>
-        <div id="course_date_radios"></div>
-      </div>
 
-      <div class="row">
-        <div>
-          <label class="required">Course Start Date</label>
-          <input type="date" id="course_start_date" value="2026-07-06" />
-          <div class="date-fmt" id="course_start_date_fmt">—</div>
-        </div>
-        <div>
-          <label class="required">Duration (weeks)</label>
-          <input type="number" id="duration_weeks" min="1" max="12" value="4" />
-        </div>
-      </div>
+if not check_password():
+    st.stop()
 
-      <label>Course End Date</label>
-      <input type="date" id="course_end_date" />
-      <div class="date-fmt" id="course_end_date_fmt">—</div>
-      <p class="subtitle" id="end-hint">Default dates come from Daddy English Administration. You can override them.</p>
+RATING_OPTIONS = ["", "Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"]
+PHONE_TYPES = ["", "Mobile", "Home", "WhatsApp", "LINE"]
+FEEDBACK_FIELDS = [
+    ("feedback_accommodation_quality", "Overall accommodation quality"),
+    ("feedback_room_cleanliness", "Room cleanliness and condition"),
+    ("feedback_interaction_communication", "Interaction and communication with host family"),
+    ("feedback_friendliness", "Friendliness of host family"),
+    ("feedback_meal_quality_portion", "Quality and portion of meals"),
+    ("feedback_meals_dietary", "Meals meeting personal/dietary needs"),
+    ("feedback_safety_convenience", "Safety and convenience of accommodation"),
+]
+TRANSPORT_OPTIONS = ["Coach", "Mini Bus", "Train", "Taxi", "Other"]
+STATUS_OPTIONS = ["Offered", "Confirmed"]
+DEPOSIT_STATUS_OPTIONS = ["Unpaid", "Paid"]
 
-      <div class="row">
-        <div>
-          <label>Age at course start</label>
-          <input type="text" id="age_at_start" readonly />
-        </div>
-        <div>
-          <label>Age at course end</label>
-          <input type="text" id="age_at_end" readonly />
-        </div>
-      </div>
-    </div>
 
-    <div class="card hidden" id="over18-card">
-      <h2>Over 18 contact</h2>
-      <label>Student contact tel</label>
-      <input type="tel" id="student_tel" />
-      <label>Student email</label>
-      <input type="email" id="student_email" />
-    </div>
+def safe(value):
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return ""
+    return str(value)
 
-    <div class="card">
-      <h2>3. Permissions</h2>
-      <label class="required">Permission to go out without supervision (14-16)</label>
-      <select id="permission_unsupervised">
-        <option value="YES">YES</option>
-        <option value="NO">NO</option>
-        <option value="Not applicable">Not applicable</option>
-      </select>
-      <label class="required">Permission for Anglo photography / video / social media</label>
-      <select id="permission_anglo_media">
-        <option value="YES">YES</option>
-        <option value="NO">NO</option>
-      </select>
-      <label class="required">Permission for AMBEX to take student out</label>
-      <select id="permission_ambex_outing">
-        <option value="YES">YES</option>
-        <option value="NO">NO</option>
-        <option value="Not applicable">Not applicable (17+)</option>
-      </select>
-    </div>
 
-    <div class="card">
-      <h2>4. Host family request</h2>
-      <label class="required">Does the student require a host family?</label>
-      <select id="requires_host_family">
-        <option value="Yes">Yes</option>
-        <option value="No">No</option>
-      </select>
-      <div id="host-request-wrap">
-        <label>Host family from date</label>
-        <input type="date" id="host_family_from" />
-        <div class="date-fmt" id="host_family_from_fmt">—</div>
-        <label>Host family leave date</label>
-        <input type="date" id="host_family_leave" />
-        <div class="date-fmt" id="host_family_leave_fmt">—</div>
-        <label>Homestay pairing request (optional)</label>
-        <input type="text" id="homestay_pairing" placeholder="e.g. CHING-HSIN LIN" />
-        <label>Prefer a family with a pet?</label>
-        <select id="host_family_pet">
-          <option value="Yes">Yes</option>
-          <option value="No">No</option>
-          <option value="Don't care">Don't care</option>
-        </select>
-      </div>
-    </div>
+def fmt_date(value):
+    text = safe(value)[:10]
+    if not text:
+        return "—"
+    try:
+        return datetime.strptime(text, "%Y-%m-%d").strftime("%d-%b-%Y")
+    except Exception:
+        return text
 
-    <div class="card">
-      <h2>5. Medical, dietary & learning</h2>
-      <label>Allergies / Special requirements</label>
-      <textarea id="allergies" placeholder="Leave blank if none"></textarea>
-      <label>Medical issues</label>
-      <textarea id="medical_issues" placeholder="Leave blank if none"></textarea>
-      <label>Special dietary requirements</label>
-      <textarea id="dietary_requirements" placeholder="Leave blank if none"></textarea>
-      <label>Learning disabilities</label>
-      <textarea id="learning_disabilities" placeholder="Leave blank if none"></textarea>
-      <label>Medications</label>
-      <textarea id="medications" placeholder="Leave blank if none"></textarea>
-    </div>
 
-    <div class="card">
-      <h2>6. Home Address</h2>
-      <label class="required">Address (English characters only)</label>
-      <p class="hint">Use the Taiwan Post Office translation if needed: post.gov.tw</p>
-      <textarea id="home_address_english"></textarea>
-      <div class="field-error" id="err-home_address_english">Address is required</div>
-    </div>
+def parse_iso_date(value):
+    text = safe(value)[:10]
+    if not text:
+        return None
+    try:
+        return datetime.strptime(text, "%Y-%m-%d").date()
+    except Exception:
+        return None
 
-    <div class="card">
-      <h2>7. Parent / Guardian (Next of Kin)</h2>
-      <label class="required">Guardian Full Name</label>
-      <input type="text" id="guardian_name" />
-      <div class="field-error" id="err-guardian_name">Guardian name is required</div>
-      <label class="required">Relationship to student</label>
-      <input type="text" id="next_of_kin_relationship" placeholder="e.g. Mother" />
-      <label class="required">Mobile Phone</label>
-      <input type="tel" id="guardian_tel" placeholder="+886912345678" />
-      <div class="field-error" id="err-guardian_tel">Enter a valid phone number</div>
-      <label class="required">Email</label>
-      <input type="email" id="guardian_email" />
-      <div class="field-error" id="err-guardian_email">Enter a valid email address</div>
-      <label class="required">LINE ID / name</label>
-      <input type="text" id="guardian_line_id" />
-      <label class="required">Can guardian speak English?</label>
-      <select id="guardian_speaks_english">
-        <option value="YES">YES</option>
-        <option value="NO">NO</option>
-      </select>
-    </div>
 
-    <div class="card">
-      <h2>8. Parent & Child Program</h2>
-      <label class="required">Join the Parent and Child Program?</label>
-      <select id="parent_child_program">
-        <option value="Yes">Yes</option>
-        <option value="No">No</option>
-      </select>
-      <label class="required">Accompany the child but NOT join the program?</label>
-      <select id="accompany_not_program">
-        <option value="Yes">Yes</option>
-        <option value="No">No</option>
-      </select>
-    </div>
+@st.cache_resource
+def get_supabase() -> Client:
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    <div class="card">
-      <h2>9. Flight Details</h2>
-      <label>Standard Flight Out Date</label>
-      <select id="flight_out_date">
-        <option value="">Select a flight out date...</option>
-      </select>
-      <div class="date-fmt" id="flight_out_date_fmt">—</div>
-      <div id="return-wrap" class="hidden">
-        <label>Flight Return Date</label>
-        <select id="flight_return_date">
-          <option value="">I do not want the standard return</option>
-        </select>
-        <div class="date-fmt" id="flight_return_date_fmt">—</div>
-      </div>
-      <div id="alt-wrap" class="hidden">
-        <label>If not using the standard return</label>
-        <select id="flight_arrangement">
-          <option value="">Select an option...</option>
-          <option value="Custom Outbound">Outbound Flight Date and Flight Number</option>
-          <option value="Parental Pick Up">Parental Pick Up</option>
-          <option value="Other Plans">Other Plans</option>
-        </select>
-        <div id="custom-flight-wrap" class="hidden">
-          <label>Outbound Flight Date</label>
-          <input type="date" id="custom_outbound_date" />
-          <div class="date-fmt" id="custom_outbound_date_fmt">—</div>
-          <label>Outbound Flight Number</label>
-          <input type="text" id="custom_outbound_flight_number" placeholder="e.g. BA123" />
-        </div>
-        <div id="other-plans-wrap" class="hidden">
-          <label>Other plans details</label>
-          <textarea id="other_plans_notes"></textarea>
-        </div>
-      </div>
-    </div>
 
-    <div class="card">
-      <h2>10. Notes</h2>
-      <label>Notes</label>
-      <textarea id="notes" placeholder="You may use any language in this box"></textarea>
-    </div>
-  </div>
+supabase = get_supabase()
 
-  <div class="success-screen" id="success-screen">
-    <div style="font-size: 3rem;">✅</div>
-    <h2>Registration Submitted!</h2>
-    <p>Thank you. You can close this page.</p>
-  </div>
+tab_regs, tab_flights, tab_courses, tab_trips, tab_taxis = st.tabs(
+    ["Update & Amend Registrations", "Setup Flights", "Setup Courses", "Setup Trips", "Book Taxi"]
+)
 
-  <div class="footer-actions" id="footer-actions">
-    <button type="button" class="btn btn-secondary" id="btn-draft">Save Draft</button>
-    <button type="button" class="btn btn-primary" id="btn-submit">Submit Application</button>
-  </div>
+with tab_flights:
+    st.subheader("Add a standard flight option")
+    today = date_cls.today()
+    fo_out = st.date_input("Flight Out Date", value=today, min_value=today)
+    fo_out_no = st.text_input("Outbound flight number")
+    fo_ret = st.date_input(
+        "Flight Return Date",
+        value=fo_out + timedelta(days=1),
+        min_value=fo_out + timedelta(days=1),
+        key=f"fo_ret_{fo_out}"
+    )
+    fo_ret_no = st.text_input("Return flight number")
+    fo_label = st.text_input("Label (optional)")
 
-  <script>
-    const SUPABASE_URL = "https://bwhkccfwzsvjtsaqvhyy.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_LdjLR-FIesLKwuqtQzHDpg_C-OIdGgg";
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const TRIP_START = new Date("2026-07-06");
-    const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    if st.button("Save flight option"):
+        try:
+            supabase.table("flight_options").insert({
+                "outbound_date": fo_out.isoformat(),
+                "outbound_flight_number": fo_out_no.strip() or None,
+                "return_date": fo_ret.isoformat(),
+                "return_flight_number": fo_ret_no.strip() or None,
+                "label": fo_label.strip() or None,
+                "is_active": True,
+            }).execute()
+            st.success("Flight option saved")
+            st.rerun()
+        except Exception as e:
+            st.error("Could not save flight option.")
+            st.caption(str(e))
 
-    const COURSE_OPTIONS = [
-      "C-2.20 (20 lessons) - 10-16 - English with full activity schedule",
-      "V-2.20 (20 lessons) - 16-17 - English with full activity schedule",
-      "G-1.20 (20 lessons) - 16+ - English course (15 hrs a week)",
-      "G-1.30 (30 lessons) - 16+ - Intensive English course (22.5 hrs a week)",
-      "IELTS (30 lessons - 20 General Eng + 10 exam practice) - 16-17",
-      "Cambridge B1 (30 lessons - 20 General Eng + 10 exam practice) - 16+",
-      "Cambridge B2 (30 lessons - 20 General Eng + 10 exam practice) - 16+",
-      "Cambridge C1 (30 lessons - 20 General Eng + 10 exam practice) - 16+",
-      "Over 50s (20 lessons) - 50+",
-      "Eng teaching (20 lessons) - 20+",
-      "X-2.30 IELTS Examination Practice and Intensive English",
-      "Other (please specify)"
-    ];
+    try:
+        flights = supabase.table("flight_options").select("*").order("outbound_date").execute().data or []
+    except Exception as e:
+        st.error("Could not load flight options.")
+        st.caption(str(e))
+        flights = []
 
-    let flightOptions = [];
-    let courseDateOptions = [];
-    let endDateManuallyEdited = false;
+    st.subheader("Existing options")
+    if flights:
+        view = pd.DataFrame(flights)
+        for col in ["outbound_date", "return_date"]:
+            if col in view.columns:
+                view[col] = view[col].apply(fmt_date)
+        # Hide id from the editor (keep it in the dataframe for deletion matching)
+        display_cols = [c for c in view.columns if c != "id"]
+        edited = st.data_editor(
+            view[display_cols],
+            use_container_width=True,
+            hide_index=True,
+            num_rows="dynamic",
+            key="flights_editor"
+        )
+        if st.button("Save flight changes"):
+            try:
+                # Rows that disappeared are deleted
+                original_ids = set(view["id"].astype(str))
+                # Map remaining rows back by position is unreliable after format; delete by matching on remaining count is hard.
+                # Safer: show a simple delete list.
+                st.warning("Use the delete list below for reliable removal. Table edits are display-only for now.")
+            except Exception as e:
+                st.error("Could not save flight changes.")
+                st.caption(str(e))
 
-    function isEnglishOnly(value) {
-      if (!value) return true;
-      return /^[\x20-\x7E]*$/.test(value);
-    }
-    function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || ""); }
-    function isValidPhone(phone) { return /^\+?[0-9\s\-]{7,20}$/.test(phone || ""); }
-    function cleanPassport(value) { return (value || "").replace(/[^0-9]/g, ""); }
-    function formatDateDisplay(iso) {
-      if (!iso) return "—";
-      const d = new Date(String(iso).slice(0, 10) + "T00:00:00");
-      if (isNaN(d)) return "—";
-      return `${String(d.getDate()).padStart(2, "0")}-${MONTHS[d.getMonth()]}-${d.getFullYear()}`;
-    }
-    function isoFromDate(d) { return d.toISOString().split("T")[0]; }
-    function calculatedEndDate(startIso, weeks) {
-      if (!startIso || !weeks) return "";
-      const start = new Date(startIso + "T00:00:00");
-      start.setDate(start.getDate() + (weeks * 7) - 3);
-      return isoFromDate(start);
-    }
-    function dateMode() {
-      const el = document.querySelector('input[name="date_mode"]:checked');
-      return el ? el.value : "default";
-    }
-    function calculateAge(dob, onDate) {
-      if (!dob || !onDate) return null;
-      const born = new Date(dob);
-      const on = new Date(onDate);
-      let age = on.getFullYear() - born.getFullYear();
-      const m = on.getMonth() - born.getMonth();
-      if (m < 0 || (m === 0 && on.getDate() < born.getDate())) age--;
-      return age;
-    }
-    function ageYearsMonths(dob, onDate) {
-      if (!dob || !onDate) return "";
-      const born = new Date(dob);
-      const on = new Date(onDate);
-      let years = on.getFullYear() - born.getFullYear();
-      let months = on.getMonth() - born.getMonth();
-      if (on.getDate() < born.getDate()) months--;
-      if (months < 0) { years--; months += 12; }
-      if (years < 0) return "";
-      return `${years} years ${months} months`;
-    }
+        st.markdown("**Delete a flight option**")
+        labels = [
+            f"{fmt_date(f.get('outbound_date'))} → {fmt_date(f.get('return_date'))} | {f.get('outbound_flight_number') or ''} / {f.get('return_flight_number') or ''}"
+            for f in flights
+        ]
+        choice = st.selectbox("Select option to delete", ["-"] + labels, key="flight_delete")
+        if choice != "-" and st.button("Delete selected flight"):
+            selected = flights[labels.index(choice)]
+            supabase.table("flight_options").delete().eq("id", selected["id"]).execute()
+            st.success("Flight option deleted")
+            st.rerun()
+    else:
+        st.info("No standard flight options yet. Add one above.")
 
-    function checkEnglishLive(el) {
-      if (!el || el.id === "notes") return;
-      const err = document.getElementById("err-" + el.id);
-      const bad = !isEnglishOnly(el.value);
-      if (err) {
-        if (bad) {
-          err.textContent = "English characters only";
-          err.style.display = "block";
-        } else if (err.textContent === "English characters only") {
-          err.style.display = "none";
-        }
-      }
-      if (bad) {
-        document.getElementById("global-error").textContent = "Please use English characters only, except in Notes.";
-        document.getElementById("global-error").style.display = "block";
-      } else {
-        const stillBad = [...document.querySelectorAll("#form-container input, #form-container select, #form-container textarea")]
-          .some(field => field.id !== "notes" && !isEnglishOnly(field.value));
-        if (!stillBad) document.getElementById("global-error").style.display = "none";
-      }
-    }
+with tab_courses:
+    st.subheader("Add a default course date")
+    st.caption("End date is calculated as the Saturday at the end of the duration, and can be overridden.")
 
-    function refreshDateLabels() {
-      ["date_of_birth","course_start_date","course_end_date","flight_out_date","custom_outbound_date","host_family_from","host_family_leave"].forEach(id => {
-        const fmt = document.getElementById(id + "_fmt");
-        const el = document.getElementById(id);
-        if (fmt && el) fmt.textContent = formatDateDisplay(el.value);
-      });
-      const selectedId = document.getElementById("flight_return_date").value;
-      const match = flightOptions.find(f => f.id === selectedId);
-      document.getElementById("flight_return_date_fmt").textContent = match ? formatDateDisplay(match.return_date) : "—";
-    }
+    cd_label = st.text_input("Group Name", key="course_date_label")
+    cd_start = st.date_input("Course Start Date", key="course_date_start")
+    cd_weeks = st.number_input("Duration (weeks)", min_value=1, max_value=12, value=4, key="course_date_weeks")
+    calculated_end = date_cls.fromordinal(cd_start.toordinal() + (int(cd_weeks) * 7) - 3)
+    cd_end = st.date_input(
+        "Course End Date (overridable)",
+        value=calculated_end,
+        key=f"course_date_end_{cd_start}_{int(cd_weeks)}"
+    )
+    st.caption(f"Calculated Saturday: {calculated_end.strftime('%d-%b-%Y')}")
 
-    function updateAges() {
-      const dob = document.getElementById("date_of_birth").value;
-      const start = document.getElementById("course_start_date").value;
-      const end = document.getElementById("course_end_date").value;
-      const ageOnTrip = calculateAge(dob, "2026-07-06");
-      document.getElementById("age-display").textContent = ageOnTrip === null ? "Age on 6 Jul 2026: —" : `Age on 6 Jul 2026: ${ageOnTrip} years old`;
-      const warning = document.getElementById("age-warning");
-      if (ageOnTrip !== null && ageOnTrip < 10) {
-        warning.textContent = "Daddy English will contact you to discuss these requirements in more detail";
-        warning.classList.remove("hidden");
-      } else {
-        warning.classList.add("hidden");
-      }
-      document.getElementById("age_at_start").value = ageYearsMonths(dob, start);
-      document.getElementById("age_at_end").value = ageYearsMonths(dob, end);
-      const startAge = calculateAge(dob, start);
-      document.getElementById("over18-card").classList.toggle("hidden", !(startAge !== null && startAge >= 18));
-    }
+    if st.button("Save course date option"):
+        try:
+            supabase.table("course_date_options").insert({
+                "label": cd_label.strip() or None,
+                "start_date": cd_start.isoformat(),
+                "duration_weeks": int(cd_weeks),
+                "end_date": cd_end.isoformat(),
+                "is_active": True,
+            }).execute()
+            st.success("Course date option saved")
+            st.rerun()
+        except Exception as e:
+            st.error("Could not save course date option.")
+            st.caption(str(e))
 
-    function selectedCourses() {
-      return [...document.querySelectorAll('input[name="course_check"]:checked')].map(el => el.value);
-    }
+    try:
+        course_dates = supabase.table("course_date_options").select("*").order("start_date").execute().data or []
+    except Exception as e:
+        st.error("Could not load course date options.")
+        st.caption(str(e))
+        course_dates = []
 
-    function renderCourses() {
-      const wrap = document.getElementById("course_checks");
-      const current = (document.getElementById("course_type").value || "").split(" | ").filter(Boolean);
-      wrap.innerHTML = COURSE_OPTIONS.map(o => `
-        <label class="check-row">
-          <input type="checkbox" name="course_check" value="${o.replace(/"/g, """)}" ${current.includes(o) ? "checked" : ""} />
-          <span>${o}</span>
-        </label>
-      `).join("");
-      wrap.querySelectorAll('input[name="course_check"]').forEach(el => {
-        el.addEventListener("change", syncCourseSelection);
-      });
-      syncCourseSelection();
-    }
+    st.subheader("Existing course dates")
+    if course_dates:
+        view = pd.DataFrame(course_dates)
+        for col in ["start_date", "end_date"]:
+            if col in view.columns:
+                view[col] = view[col].apply(fmt_date)
+        display_cols = [c for c in view.columns if c not in ("id", "is_active")]
+        st.data_editor(
+            view[display_cols],
+            use_container_width=True,
+            hide_index=True,
+            num_rows="dynamic",
+            key="courses_editor"
+        )
+        st.markdown("**Delete a course date**")
+        labels = [
+            f"{safe(c.get('label')) or 'Unnamed'} | {fmt_date(c.get('start_date'))} → {fmt_date(c.get('end_date'))} ({c.get('duration_weeks')} wks)"
+            for c in course_dates
+        ]
+        choice = st.selectbox("Select course date to delete", ["-"] + labels, key="course_delete")
+        if choice != "-" and st.button("Delete selected course date"):
+            selected = course_dates[labels.index(choice)]
+            supabase.table("course_date_options").delete().eq("id", selected["id"]).execute()
+            st.success("Course date deleted")
+            st.rerun()
+    else:
+        st.info("No default course dates yet. Add one above.")
 
-    function syncCourseSelection() {
-      const selected = selectedCourses();
-      document.getElementById("course_type").value = selected.join(" | ");
-      document.getElementById("course-other-wrap").classList.toggle("hidden", !selected.includes("Other (please specify)"));
-    }
+with tab_trips:
+    st.subheader("Setup Trips")
+    st.caption("Add individual trips. Non-Saturday / non-Sunday dates are flagged.")
 
-    function updateEndDate(force) {
-      if (dateMode() === "custom" && endDateManuallyEdited && !force) {
-        updateAges();
-        refreshDateLabels();
-        return;
-      }
-      if (dateMode() === "default") {
-        updateAges();
-        refreshDateLabels();
-        return;
-      }
-      const start = document.getElementById("course_start_date").value;
-      const weeks = parseInt(document.getElementById("duration_weeks").value) || 0;
-      document.getElementById("course_end_date").value = calculatedEndDate(start, weeks);
-      updateAges();
-      refreshDateLabels();
-    }
+    st.markdown("### Add a trip")
+    new_date = st.date_input("Date", key="new_trip_date")
+    st.caption(new_date.strftime("%d-%b-%Y"))
+    new_day = "Saturday" if new_date.weekday() == 5 else "Sunday" if new_date.weekday() == 6 else new_date.strftime("%A")
+    is_weekend = new_date.weekday() in (5, 6)
+    if is_weekend:
+        st.write(f"Day: **{new_day}**")
+    else:
+        st.error(f"Flagged: {new_day} is not a Saturday or Sunday")
 
-    async function loadCourseDateOptions() {
-      try {
-        const { data, error } = await supabaseClient.from("course_date_options").select("*").eq("is_active", true).order("start_date");
-        if (error) throw error;
-        courseDateOptions = data || [];
-      } catch (e) {
-        courseDateOptions = [];
-      }
-      renderCourseDateOptions();
-    }
+    trip_provider = st.selectbox("Provider", ["Anglo", "Ambex"], key="new_trip_provider")
+    trip_to = st.text_input("Trip to", key="new_trip_to")
+    trip_price = st.number_input("Price", min_value=0.0, step=1.0, key="new_trip_price")
 
-    function renderCourseDateOptions() {
-      const wrap = document.getElementById("course_date_radios");
-      if (!courseDateOptions.length) {
-        wrap.innerHTML = "<p class='subtitle'>No default course dates have been set up yet.</p>";
-        return;
-      }
-      wrap.innerHTML = courseDateOptions.map((c, i) => {
-        const label = (c.label ? c.label + " — " : "") +
-          formatDateDisplay(c.start_date) + " to " + formatDateDisplay(c.end_date) +
-          " (" + c.duration_weeks + " weeks)";
-        return `<label class="radio-row"><input type="radio" name="course_date_option" value="${c.id}" ${i === 0 ? "checked" : ""} /><span>${label}</span></label>`;
-      }).join("");
-      wrap.querySelectorAll('input[name="course_date_option"]').forEach(r => {
-        r.addEventListener("change", applySelectedCourseDate);
-      });
-      applySelectedCourseDate();
-    }
+    if st.button("Save trip"):
+        try:
+            supabase.table("trips").insert({
+                "trip_date": new_date.isoformat(),
+                "day_name": new_day,
+                "trip_type": trip_provider,
+                "description": trip_to.strip() or None,
+                "cost_15_plus": trip_price,
+                "is_active": True,
+            }).execute()
+            st.success("Trip saved")
+            st.rerun()
+        except Exception as e:
+            st.error("Could not save trip.")
+            st.caption(str(e))
 
-    function applySelectedCourseDate() {
-      if (dateMode() !== "default") return;
-      const selected = document.querySelector('input[name="course_date_option"]:checked');
-      if (!selected) return;
-      const option = courseDateOptions.find(c => c.id === selected.value);
-      if (!option) return;
-      document.getElementById("course_start_date").value = String(option.start_date).slice(0, 10);
-      document.getElementById("duration_weeks").value = option.duration_weeks;
-      document.getElementById("course_end_date").value = String(option.end_date).slice(0, 10);
-      endDateManuallyEdited = true;
-      updateAges();
-      refreshDateLabels();
-    }
+    st.markdown("### Trips")
+    try:
+        trips = supabase.table("trips").select("*").order("trip_date").execute().data or []
+    except Exception as e:
+        st.error("Could not load trips.")
+        st.caption(str(e))
+        trips = []
 
-    function applyDateMode() {
-      const custom = dateMode() === "custom";
-      document.getElementById("default-dates-wrap").classList.toggle("hidden", custom);
-      document.getElementById("course_start_date").readOnly = !custom;
-      document.getElementById("duration_weeks").readOnly = !custom;
-      document.getElementById("course_end_date").readOnly = !custom;
-      document.getElementById("end-hint").textContent = custom
-        ? "Enter your own Course Start Date and Course End Date."
-        : "These dates come from Daddy English Administration.";
-      if (!custom) applySelectedCourseDate();
-      else {
-        endDateManuallyEdited = false;
-        updateEndDate(true);
-      }
-    }
+    if not trips:
+        st.info("No trips yet. Add one above.")
+    else:
+        if st.button("Select all"):
+            st.session_state["trips_force_select"] = True
+            st.session_state["trips_editor_key"] = st.session_state.get("trips_editor_key", 0) + 1
+            st.rerun()
+        force_select = st.session_state.get("trips_force_select", False)
+        editor_key = st.session_state.get("trips_editor_key", 0)
 
-    function toggleHostRequest() {
-      document.getElementById("host-request-wrap").classList.toggle("hidden", document.getElementById("requires_host_family").value !== "Yes");
-    }
+        rows = []
+        for t in trips:
+            d = parse_iso_date(t.get("trip_date"))
+            day = t.get("day_name") or (d.strftime("%A") if d else "")
+            flagged = "Yes" if d and d.weekday() not in (5, 6) else ""
+            rows.append({
+                "Select": force_select,
+                "Day": day,
+                "Date": fmt_date(t.get("trip_date")),
+                "Flagged": flagged,
+                "Provider": t.get("trip_type") or "",
+                "Trip to": t.get("description") or "",
+                "Price": t.get("cost_15_plus") or "",
+                "id": str(t.get("id")),
+            })
+        view = pd.DataFrame(rows)
+        edited = st.data_editor(
+            view,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Select": st.column_config.CheckboxColumn("Select", default=False),
+                "id": None,
+            },
+            disabled=["Day", "Date", "Flagged", "Provider", "Trip to", "Price", "id"],
+            key=f"trips_editor_{editor_key}"
+        )
+        if st.button("Delete selected trips"):
+            if force_select:
+                to_delete = [str(t.get("id")) for t in trips]
+            else:
+                to_delete = edited.loc[edited["Select"] == True, "id"].tolist()
+            if not to_delete:
+                st.warning("Select at least one trip to delete.")
+            else:
+                try:
+                    for tid in to_delete:
+                        supabase.table("trips").delete().eq("id", tid).execute()
+                    st.session_state["trips_force_select"] = False
+                    st.session_state["trips_editor_key"] = st.session_state.get("trips_editor_key", 0) + 1
+                    st.success(f"Deleted {len(to_delete)} trip(s)")
+                    st.rerun()
+                except Exception as e:
+                    st.error("Could not delete trips.")
+                    st.caption(str(e))
 
-    async function loadFlightOptions() {
-      try {
-        const { data, error } = await supabaseClient.from("flight_options").select("*").eq("is_active", true).order("outbound_date");
-        if (error) throw error;
-        flightOptions = data || [];
-      } catch (e) {
-        flightOptions = [];
-      }
-      populateOutboundDates();
-    }
+with tab_taxis:
+    SCHOOL_L1 = "Anglo-Continental School of English"
+    SCHOOL_L2 = "29-35 Wimborne Rd"
+    SCHOOL_L3 = "Bournemouth"
+    SCHOOL_PC = "BH2 6NA"
 
-    function populateOutboundDates() {
-      const sel = document.getElementById("flight_out_date");
-      const current = sel.value;
-      const dates = [...new Set(flightOptions.map(f => f.outbound_date))];
-      sel.innerHTML = '<option value="">Select a flight out date...</option>' +
-        dates.map(d => `<option value="${d}">${formatDateDisplay(d)}</option>`).join("");
-      if (current && dates.includes(current)) sel.value = current;
-      populateReturnDates();
-    }
+    st.subheader("Book Taxi")
 
-    function populateReturnDates() {
-      const out = document.getElementById("flight_out_date").value;
-      const returnWrap = document.getElementById("return-wrap");
-      const retSel = document.getElementById("flight_return_date");
-      const current = retSel.value;
-      if (!out) {
-        returnWrap.classList.add("hidden");
-        document.getElementById("alt-wrap").classList.add("hidden");
-        refreshDateLabels();
-        return;
-      }
-      const matches = flightOptions.filter(f => f.outbound_date === out);
-      retSel.innerHTML = '<option value="">I do not want the standard return</option>' +
-        matches.map(f => {
-          const extra = f.return_flight_number ? ` (${f.return_flight_number})` : "";
-          return `<option value="${f.id}">${formatDateDisplay(f.return_date)}${extra}</option>`;
-        }).join("");
-      if (current && matches.some(f => f.id === current)) retSel.value = current;
-      returnWrap.classList.remove("hidden");
-      updateFlightArrangementUI();
-    }
+    taxi_date = st.date_input("Date", key="taxi_date")
+    st.caption(taxi_date.strftime("%d-%b-%Y"))
+    taxi_time = st.time_input("Time", key="taxi_time")
 
-    function updateFlightArrangementUI() {
-      const out = document.getElementById("flight_out_date").value;
-      const ret = document.getElementById("flight_return_date").value;
-      const arrangement = document.getElementById("flight_arrangement");
-      const otherOption = arrangement.querySelector('option[value="Other Plans"]');
-      const age = calculateAge(document.getElementById("date_of_birth").value, "2026-07-06");
-      if (otherOption) {
-        otherOption.disabled = !(age !== null && age >= 16);
-        if (otherOption.disabled && arrangement.value === "Other Plans") arrangement.value = "";
-      }
-      if (out && !ret) document.getElementById("alt-wrap").classList.remove("hidden");
-      else {
-        document.getElementById("alt-wrap").classList.add("hidden");
-        arrangement.value = "";
-      }
-      document.getElementById("custom-flight-wrap").classList.toggle("hidden", arrangement.value !== "Custom Outbound");
-      document.getElementById("other-plans-wrap").classList.toggle("hidden", arrangement.value !== "Other Plans");
-      refreshDateLabels();
-    }
+    def next_job_number():
+        stamp = datetime.now().strftime("%Y%m%d-%H%M")
+        suffix = str(datetime.now().microsecond)[-4:]
+        return f"TX-{stamp}-{suffix}"
 
-    const FIELDS = [
-      "surname","first_name","english_nickname","date_of_birth","passport_number","gender","nationality",
-      "course_type","course_other","course_start_date","duration_weeks","course_end_date","age_at_start","age_at_end",
-      "student_tel","student_email",
-      "permission_unsupervised","permission_anglo_media","permission_ambex_outing",
-      "requires_host_family","host_family_from","host_family_leave","homestay_pairing","host_family_pet",
-      "allergies","medical_issues","dietary_requirements","learning_disabilities","medications",
-      "home_address_english",
-      "guardian_name","next_of_kin_relationship","guardian_tel","guardian_email","guardian_line_id","guardian_speaks_english",
-      "parent_child_program","accompany_not_program",
-      "flight_out_date","flight_return_date","flight_arrangement",
-      "custom_outbound_date","custom_outbound_flight_number","other_plans_notes","notes"
-    ];
+    job_number = st.text_input("Job number", value=next_job_number(), key="taxi_job")
+    taxi_status = st.selectbox(
+        "Status",
+        ["Booked", "Paid", "Invoice due", "Invoice paid"],
+        key="taxi_status"
+    )
+    main_passenger = st.text_input("Main passenger", key="taxi_main")
+    passenger_contact = st.text_input("Passenger contact number", key="taxi_pax_tel")
+    pax_count = st.number_input("Number of passengers", min_value=1, max_value=20, value=1, key="taxi_pax_count")
 
-    function saveDraftLocally() {
-      const data = {};
-      FIELDS.forEach(id => { const el = document.getElementById(id); if (el) data[id] = el.value; });
-      data.date_mode = dateMode();
-      localStorage.setItem("ambex_draft", JSON.stringify(data));
-    }
+    pickup_school = st.radio("Pickup from school", ["No", "Yes"], horizontal=True, key="taxi_pickup_school")
+    if pickup_school == "Yes":
+        pickup_l1, pickup_l2, pickup_l3, pickup_pc = SCHOOL_L1, SCHOOL_L2, SCHOOL_L3, SCHOOL_PC
+        st.text_input("Pickup address line 1", value=pickup_l1, disabled=True, key="taxi_pick_l1_disp")
+        st.text_input("Pickup address line 2", value=pickup_l2, disabled=True, key="taxi_pick_l2_disp")
+        st.text_input("Pickup address line 3", value=pickup_l3, disabled=True, key="taxi_pick_l3_disp")
+        st.text_input("Pickup postcode", value=pickup_pc, disabled=True, key="taxi_pick_pc_disp")
+    else:
+        pickup_l1 = st.text_input("Pickup address line 1", key="taxi_pick_l1")
+        pickup_l2 = st.text_input("Pickup address line 2", key="taxi_pick_l2")
+        pickup_l3 = st.text_input("Pickup address line 3", key="taxi_pick_l3")
+        pickup_pc = st.text_input("Pickup postcode", key="taxi_pick_pc")
 
-    function loadDraft() {
-      const raw = localStorage.getItem("ambex_draft");
-      if (!raw) return;
-      try {
-        const data = JSON.parse(raw);
-        FIELDS.forEach(id => {
-          const el = document.getElementById(id);
-          if (el && data[id] !== undefined) el.value = data[id];
-        });
-        if (data.date_mode) {
-          const modeEl = document.querySelector(`input[name="date_mode"][value="${data.date_mode}"]`);
-          if (modeEl) modeEl.checked = true;
-        }
-        renderCourses();
-        applyDateMode();
-        toggleHostRequest();
-        populateReturnDates();
-      } catch (e) {}
-    }
+    dropoff_school = st.radio("Dropoff to school", ["No", "Yes"], horizontal=True, key="taxi_drop_school")
+    if dropoff_school == "Yes":
+        drop_l1, drop_l2, drop_l3, drop_pc = SCHOOL_L1, SCHOOL_L2, SCHOOL_L3, SCHOOL_PC
+        st.text_input("Dropoff address line 1", value=drop_l1, disabled=True, key="taxi_drop_l1_disp")
+        st.text_input("Dropoff address line 2", value=drop_l2, disabled=True, key="taxi_drop_l2_disp")
+        st.text_input("Dropoff address line 3", value=drop_l3, disabled=True, key="taxi_drop_l3_disp")
+        st.text_input("Dropoff postcode", value=drop_pc, disabled=True, key="taxi_drop_pc_disp")
+    else:
+        drop_l1 = st.text_input("Dropoff address line 1", key="taxi_drop_l1")
+        drop_l2 = st.text_input("Dropoff address line 2", key="taxi_drop_l2")
+        drop_l3 = st.text_input("Dropoff address line 3", key="taxi_drop_l3")
+        drop_pc = st.text_input("Dropoff postcode", key="taxi_drop_pc")
 
-    function clearAllErrors() {
-      document.querySelectorAll(".field-error").forEach(el => el.style.display = "none");
-      document.getElementById("global-error").style.display = "none";
-    }
-    function showFieldError(id, show = true) {
-      const el = document.getElementById("err-" + id);
-      if (el) el.style.display = show ? "block" : "none";
-    }
+    driver_name = st.text_input("Driver name", key="taxi_driver")
+    driver_contact = st.text_input("Driver contact number", key="taxi_driver_tel")
+    cost = st.number_input("Cost", min_value=0.0, step=0.5, key="taxi_cost")
+    price_pp = st.number_input("Price per passenger", min_value=0.0, step=0.5, key="taxi_price_pp")
+    total_price = float(price_pp) * int(pax_count)
+    st.write(f"**Total Price:** £{total_price:.2f}")
+    taxi_notes = st.text_area("Notes", key="taxi_notes")
 
-    function validateEnglishFields() {
-      let valid = true;
-      document.querySelectorAll("#form-container input, #form-container select, #form-container textarea").forEach(el => {
-        if (el.id === "notes") return;
-        if (!isEnglishOnly(el.value)) {
-          const err = document.getElementById("err-" + el.id);
-          if (err) {
-            err.textContent = "English characters only";
-            err.style.display = "block";
-          }
-          document.getElementById("global-error").textContent = "Please use English characters only, except in Notes.";
-          document.getElementById("global-error").style.display = "block";
-          valid = false;
-        }
-      });
-      return valid;
-    }
+    if st.button("Save taxi booking"):
+        try:
+            supabase.table("taxi_bookings").insert({
+                "job_number": job_number.strip() or next_job_number(),
+                "status": taxi_status,
+                "booking_date": taxi_date.isoformat(),
+                "booking_time": taxi_time.strftime("%H:%M"),
+                "main_passenger": main_passenger.strip() or None,
+                "passenger_contact": passenger_contact.strip() or None,
+                "number_of_passengers": int(pax_count),
+                "pickup_from_school": pickup_school == "Yes",
+                "pickup_line1": pickup_l1.strip() if pickup_l1 else None,
+                "pickup_line2": pickup_l2.strip() if pickup_l2 else None,
+                "pickup_line3": pickup_l3.strip() if pickup_l3 else None,
+                "pickup_postcode": pickup_pc.strip() if pickup_pc else None,
+                "dropoff_to_school": dropoff_school == "Yes",
+                "dropoff_line1": drop_l1.strip() if drop_l1 else None,
+                "dropoff_line2": drop_l2.strip() if drop_l2 else None,
+                "dropoff_line3": drop_l3.strip() if drop_l3 else None,
+                "dropoff_postcode": drop_pc.strip() if drop_pc else None,
+                "driver_name": driver_name.strip() or None,
+                "driver_contact": driver_contact.strip() or None,
+                "cost": cost,
+                "price_per_passenger": price_pp,
+                "total_price": total_price,
+                "notes": taxi_notes.strip() or None,
+            }).execute()
+            st.success(f"Taxi booking saved ({job_number})")
+            st.rerun()
+        except Exception as e:
+            st.error("Could not save taxi booking.")
+            st.caption(str(e))
 
-    function validate(status) {
-      clearAllErrors();
-      let valid = validateEnglishFields();
-      if (status !== "Submitted") return valid;
-      const surname = document.getElementById("surname").value.trim();
-      const firstName = document.getElementById("first_name").value.trim();
-      const dob = document.getElementById("date_of_birth").value;
-      const passport = document.getElementById("passport_number").value;
-      const address = document.getElementById("home_address_english").value.trim();
-      const gName = document.getElementById("guardian_name").value.trim();
-      const gTel = document.getElementById("guardian_tel").value.trim();
-      const gEmail = document.getElementById("guardian_email").value.trim();
-      if (passport && passport !== cleanPassport(passport)) { showFieldError("passport_number"); valid = false; }
-      if (!surname) { showFieldError("surname"); valid = false; }
-      if (!firstName) { showFieldError("first_name"); valid = false; }
-      if (!dob) { showFieldError("date_of_birth"); valid = false; }
-      if (!address) { showFieldError("home_address_english"); valid = false; }
-      if (!gName) { showFieldError("guardian_name"); valid = false; }
-      if (!gTel || !isValidPhone(gTel)) { showFieldError("guardian_tel"); valid = false; }
-      if (!gEmail || !isValidEmail(gEmail)) { showFieldError("guardian_email"); valid = false; }
-      const age = calculateAge(dob, "2026-07-06");
-      const arrangement = document.getElementById("flight_arrangement").value;
-      if (arrangement === "Other Plans" && !(age !== null && age >= 16)) {
-        document.getElementById("global-error").textContent = "Other Plans is only available for students aged 16+.";
-        document.getElementById("global-error").style.display = "block";
-        valid = false;
-      }
-      return valid;
-    }
+    st.markdown("### Existing taxi bookings")
+    try:
+        bookings = supabase.table("taxi_bookings").select("*").order("booking_date", desc=True).execute().data or []
+    except Exception as e:
+        st.error("Could not load taxi bookings.")
+        st.caption(str(e))
+        bookings = []
 
-    function getFormData(status) {
-      const selectedId = document.getElementById("flight_return_date").value || null;
-      const match = flightOptions.find(f => f.id === selectedId);
-      return {
-        surname: document.getElementById("surname").value.trim().toUpperCase(),
-        first_name: document.getElementById("first_name").value.trim().toUpperCase(),
-        english_nickname: document.getElementById("english_nickname").value.trim() || null,
-        date_of_birth: document.getElementById("date_of_birth").value || null,
-        passport_number: cleanPassport(document.getElementById("passport_number").value) || null,
-        gender: document.getElementById("gender").value,
-        nationality: document.getElementById("nationality").value.trim() || null,
-        course_type: selectedCourses().join(" | ") || null,
-        course_other: document.getElementById("course_other").value.trim() || null,
-        course_start_date: document.getElementById("course_start_date").value || null,
-        duration_weeks: parseInt(document.getElementById("duration_weeks").value) || null,
-        course_end_date: document.getElementById("course_end_date").value || null,
-        age_at_start: document.getElementById("age_at_start").value || null,
-        age_at_end: document.getElementById("age_at_end").value || null,
-        student_tel: document.getElementById("student_tel").value.trim() || null,
-        student_email: document.getElementById("student_email").value.trim() || null,
-        permission_unsupervised: document.getElementById("permission_unsupervised").value,
-        permission_anglo_media: document.getElementById("permission_anglo_media").value,
-        permission_ambex_outing: document.getElementById("permission_ambex_outing").value,
-        requires_host_family: document.getElementById("requires_host_family").value,
-        host_family_from: document.getElementById("host_family_from").value || null,
-        host_family_leave: document.getElementById("host_family_leave").value || null,
-        homestay_pairing: document.getElementById("homestay_pairing").value.trim() || null,
-        host_family_pet: document.getElementById("host_family_pet").value,
-        allergies: document.getElementById("allergies").value.trim() || null,
-        medical_issues: document.getElementById("medical_issues").value.trim() || null,
-        dietary_requirements: document.getElementById("dietary_requirements").value.trim() || null,
-        learning_disabilities: document.getElementById("learning_disabilities").value.trim() || null,
-        medications: document.getElementById("medications").value.trim() || null,
-        home_address_english: document.getElementById("home_address_english").value.trim() || null,
-        guardian_name: document.getElementById("guardian_name").value.trim() || null,
-        next_of_kin_relationship: document.getElementById("next_of_kin_relationship").value.trim() || null,
-        guardian_tel: document.getElementById("guardian_tel").value.trim() || null,
-        guardian_email: document.getElementById("guardian_email").value.trim() || null,
-        guardian_line_id: document.getElementById("guardian_line_id").value.trim() || null,
-        guardian_speaks_english: document.getElementById("guardian_speaks_english").value,
-        parent_child_program: document.getElementById("parent_child_program").value,
-        accompany_not_program: document.getElementById("accompany_not_program").value,
-        flight_option_id: selectedId,
-        flight_out_date: document.getElementById("flight_out_date").value || null,
-        flight_return_date: match ? match.return_date : null,
-        flight_arrangement: selectedId ? "Standard Return" : (document.getElementById("flight_arrangement").value || null),
-        custom_outbound_date: document.getElementById("custom_outbound_date").value || null,
-        custom_outbound_flight_number: document.getElementById("custom_outbound_flight_number").value.trim() || null,
-        other_plans_notes: document.getElementById("other_plans_notes").value.trim() || null,
-        notes: document.getElementById("notes").value.trim() || null,
-        status: status,
-        updated_at: new Date().toISOString(),
-        submitted_at: status === "Submitted" ? new Date().toISOString() : null
-      };
-    }
+    if bookings:
+        view = pd.DataFrame(bookings)
+        if "booking_date" in view.columns:
+            view["booking_date"] = view["booking_date"].apply(fmt_date)
+        display_cols = [c for c in view.columns if c != "id"]
+        st.data_editor(
+            view[display_cols],
+            use_container_width=True,
+            hide_index=True,
+            num_rows="dynamic",
+            key="taxis_editor"
+        )
+    else:
+        st.info("No taxi bookings yet.")
 
-    async function submitForm(status) {
-      if (!validate(status)) {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-      const data = getFormData(status);
-      const btn = status === "Submitted" ? document.getElementById("btn-submit") : document.getElementById("btn-draft");
-      btn.disabled = true;
-      try {
-        const { error } = await supabaseClient.from("registrations").insert([data]);
-        if (error) throw error;
-        fetch("https://script.google.com/macros/s/AKfycbyvy4ax3fSugB4eaekhLrW4HUmKTloqzlo16Ix0K0YPV5n2XQlNOMOY1t9jHkHHlnxTEw/exec", { mode: "no-cors" }).catch(() => {});
-        if (status === "Submitted") {
-          localStorage.removeItem("ambex_draft");
-          document.getElementById("form-container").style.display = "none";
-          document.getElementById("footer-actions").style.display = "none";
-          document.getElementById("success-screen").style.display = "block";
-        } else {
-          saveDraftLocally();
-          alert("Draft saved. It will also appear in Daddy English Administration.");
-        }
-      } catch (err) {
-        document.getElementById("global-error").textContent = "Could not save. Please check your internet connection and try again.";
-        document.getElementById("global-error").style.display = "block";
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } finally {
-        btn.disabled = false;
-      }
-    }
+with tab_regs:
+    @st.cache_data(ttl=30)
+    def load_registrations():
+        response = supabase.table("registrations").select("*").order("created_at", desc=True).execute()
+        data = response.data
+        if not data:
+            return pd.DataFrame()
+        return pd.DataFrame(data)
 
-    document.getElementById("date_of_birth").addEventListener("change", () => { updateAges(); refreshDateLabels(); });
-    document.getElementById("course_start_date").addEventListener("change", () => { endDateManuallyEdited = false; updateEndDate(); });
-    document.getElementById("duration_weeks").addEventListener("input", () => { endDateManuallyEdited = false; updateEndDate(); });
-    document.getElementById("course_end_date").addEventListener("change", () => { endDateManuallyEdited = true; updateAges(); refreshDateLabels(); });
-    document.querySelectorAll('input[name="date_mode"]').forEach(el => el.addEventListener("change", applyDateMode));
-    document.getElementById("requires_host_family").addEventListener("change", toggleHostRequest);
-    document.getElementById("host_family_from").addEventListener("change", refreshDateLabels);
-    document.getElementById("host_family_leave").addEventListener("change", refreshDateLabels);
-    document.getElementById("flight_out_date").addEventListener("change", populateReturnDates);
-    document.getElementById("flight_return_date").addEventListener("change", updateFlightArrangementUI);
-    document.getElementById("flight_arrangement").addEventListener("change", updateFlightArrangementUI);
-    document.getElementById("custom_outbound_date").addEventListener("change", refreshDateLabels);
-    document.getElementById("passport_number").addEventListener("input", function() {
-      showFieldError("passport_number", this.value && this.value !== cleanPassport(this.value));
-    });
-    document.querySelectorAll("#form-container input, #form-container select, #form-container textarea").forEach(el => {
-      if (el.id === "notes") return;
-      el.addEventListener("input", () => checkEnglishLive(el));
-      el.addEventListener("change", () => checkEnglishLive(el));
-    });
-    document.getElementById("btn-draft").addEventListener("click", () => submitForm("Draft"));
-    document.getElementById("btn-submit").addEventListener("click", () => submitForm("Submitted"));
+    df = load_registrations()
+    if df.empty:
+        st.info("No registrations found yet.")
+    else:
+        with st.sidebar:
+            st.header("Filters")
+            search = st.text_input("Search (name, passport, phone, email, host family)", "")
+            status_options = ["All"] + sorted([s for s in df["status"].dropna().unique().tolist()])
+            status_filter = st.selectbox("Status", status_options)
+            if st.button("🔄 Refresh data"):
+                st.cache_data.clear()
+                st.rerun()
 
-    (async function start() {
-      await loadFlightOptions();
-      await loadCourseDateOptions();
-      renderCourses();
-      loadDraft();
-      applyDateMode();
-      toggleHostRequest();
-      updateAges();
-      refreshDateLabels();
-    })();
-  </script>
-</body>
-</html>
+        filtered = df.copy()
+        if search:
+            q = search.lower()
+            cols = ["surname", "first_name", "passport_number", "guardian_tel", "guardian_email", "host_family_name", "host_phone", "host_email"]
+            mask = False
+            for col in cols:
+                if col in filtered.columns:
+                    mask = mask | filtered[col].fillna("").astype(str).str.lower().str.contains(q)
+            filtered = filtered[mask]
+        if status_filter != "All":
+            filtered = filtered[filtered["status"] == status_filter]
+
+        st.write(f"**{len(filtered)}** record(s) shown")
+
+        def sheet_row(r):
+            nat = safe(r.get("nationality"))
+            nationality_out = "" if nat.lower() == "taiwanese" else nat
+            return {
+                "Timestamp": safe(r.get("submitted_at") or r.get("created_at") or r.get("updated_at")),
+                "Male or Female?": safe(r.get("gender")),
+                "Surname/family name of student (as on passport)": safe(r.get("surname")),
+                "First name of student (as on passport)": safe(r.get("first_name")),
+                "Nationality if NOT Taiwanese (leave blank if Taiwanese)": nationality_out,
+                "Date of Birth (day/month/year) as on passport": fmt_date(r.get("date_of_birth")),
+                "Student's age when starting their course": safe(r.get("age_at_start")),
+                "Student's age when ending their course": safe(r.get("age_at_end")),
+                "Over 18s student’s contact tel": safe(r.get("student_tel")),
+                "Over 18s student’s email": safe(r.get("student_email")),
+                "Student's passport number": safe(r.get("passport_number")),
+                "Permission to request to go out without supervision (Age group 14-16)": safe(r.get("permission_unsupervised")),
+                "Permission for Anglo to use photography/video, social media": safe(r.get("permission_anglo_media")),
+                "Course Type": safe(r.get("course_type")),
+                "If you chose Other for your course type, please specify": safe(r.get("course_other")),
+                "Course Start Date": fmt_date(r.get("course_start_date")),
+                "Course Duration (number of weeks)": safe(r.get("duration_weeks")),
+                "Does the student require a host family?": safe(r.get("requires_host_family")),
+                "Host family from date": fmt_date(r.get("host_family_from")),
+                "Host family leave date": fmt_date(r.get("host_family_leave")),
+                "Homestay pairing request": safe(r.get("homestay_pairing")),
+                "Allergies": safe(r.get("allergies")),
+                "Medical issues": safe(r.get("medical_issues")),
+                "Special dietary requirements": safe(r.get("dietary_requirements")),
+                "Prefer a host family with a pet?": safe(r.get("host_family_pet")),
+                "Learning disabilities": safe(r.get("learning_disabilities")),
+                "Medications": safe(r.get("medications")),
+                "Any other remarks": safe(r.get("notes")),
+                "First name of one parent or guardian": safe(r.get("guardian_name")),
+                "Next of kin contact tel": safe(r.get("guardian_tel")),
+                "Next of kin email": safe(r.get("guardian_email")),
+                "Next of kin's relationship to student": safe(r.get("next_of_kin_relationship")),
+                "Does next of kin speak English?": safe(r.get("guardian_speaks_english")),
+                "Permission for AMBEX to take student out": safe(r.get("permission_ambex_outing")),
+                "Contact parent's LINE name": safe(r.get("guardian_line_id")),
+                "Join the Parent and Child Program?": safe(r.get("parent_child_program")),
+                "Accompany the child but NOT join the program?": safe(r.get("accompany_not_program")),
+                "Home address (in English)": safe(r.get("home_address_english")),
+                "Notes": safe(r.get("notes")),
+            }
+
+        export_df = pd.DataFrame([sheet_row(r) for _, r in filtered.iterrows()])
+        csv = export_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="⬇️ Download CSV",
+            data=csv,
+            file_name=f"ambex_registrations_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+        st.divider()
+
+        if filtered.empty:
+            st.warning("No records match your filters.")
+        else:
+            for _, row in filtered.iterrows():
+                record_id = row["id"]
+                title = f"{safe(row.get('surname'))} {safe(row.get('first_name'))}  |  {safe(row.get('status'))}  |  {safe(row.get('course_type'))[:30]}"
+                with st.expander(title):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown(f"**Date of Birth:** {fmt_date(row.get('date_of_birth'))}")
+                        st.markdown(f"**Passport:** {safe(row.get('passport_number')) or '—'}")
+                        st.markdown(f"**Gender:** {safe(row.get('gender')) or '—'}")
+                        st.markdown(f"**Nationality:** {safe(row.get('nationality')) or '—'}")
+                    with col2:
+                        st.markdown(f"**Course:** {safe(row.get('course_type')) or '—'}")
+                        st.markdown(f"**Course Start Date:** {fmt_date(row.get('course_start_date'))}")
+                        st.markdown(f"**Course End Date:** {fmt_date(row.get('course_end_date'))}")
+                        st.markdown(f"**Duration:** {safe(row.get('duration_weeks')) or '—'} weeks")
+                    st.markdown(f"**Address:** {safe(row.get('home_address_english')) or '—'}")
+                    st.markdown(f"**Allergies:** {safe(row.get('allergies')) or 'None'}")
+                    st.markdown(f"**Flight out:** {fmt_date(row.get('flight_out_date'))}  |  **Return:** {fmt_date(row.get('flight_return_date'))}")
+                    st.markdown(f"**Arrangement:** {safe(row.get('flight_arrangement')) or '—'}")
+                    st.markdown("---")
+                    st.markdown("**Guardian**")
+                    st.markdown(f"{safe(row.get('guardian_name')) or '—'}  |  {safe(row.get('guardian_tel')) or '—'}")
+                    st.markdown(f"{safe(row.get('guardian_email')) or '—'}  |  LINE: {safe(row.get('guardian_line_id')) or '—'}")
+                    st.markdown("---")
+                    st.subheader("Host family")
+                    host_name = st.text_input("Host family name", value=safe(row.get("host_family_name")), key=f"hn_{record_id}")
+                    host_phone_type = st.selectbox(
+                        "Phone type", PHONE_TYPES,
+                        index=PHONE_TYPES.index(safe(row.get("host_phone_type"))) if safe(row.get("host_phone_type")) in PHONE_TYPES else 0,
+                        key=f"hpt_{record_id}"
+                    )
+                    host_phone = st.text_input("Host phone", value=safe(row.get("host_phone")), key=f"hp_{record_id}")
+                    host_email = st.text_input("Host email", value=safe(row.get("host_email")), key=f"he_{record_id}")
+                    host_l1 = st.text_input("Address line 1", value=safe(row.get("host_address_line1")), key=f"ha1_{record_id}")
+                    host_l2 = st.text_input("Address line 2", value=safe(row.get("host_address_line2")), key=f"ha2_{record_id}")
+                    host_l3 = st.text_input("Address line 3", value=safe(row.get("host_address_line3")), key=f"ha3_{record_id}")
+                    host_l4 = st.text_input("Address line 4", value=safe(row.get("host_address_line4")), key=f"ha4_{record_id}")
+                    host_pc = st.text_input("Postcode", value=safe(row.get("host_postcode")), key=f"hpc_{record_id}")
+                    st.markdown("---")
+                    st.subheader("Student feedback")
+                    feedback_values = {}
+                    for field_key, label in FEEDBACK_FIELDS:
+                        current = safe(row.get(field_key))
+                        feedback_values[field_key] = st.selectbox(
+                            label, RATING_OPTIONS,
+                            index=RATING_OPTIONS.index(current) if current in RATING_OPTIONS else 0,
+                            key=f"{field_key}_{record_id}"
+                        )
+                    feedback_comments = st.text_area("Comments", value=safe(row.get("feedback_comments")), key=f"fc_{record_id}")
+                    current_status = safe(row.get("status")) or "Draft"
+                    status_choices = ["Draft", "Submitted", "Confirmed", "Cancelled"]
+                    new_status = st.selectbox(
+                        "Change status", status_choices,
+                        index=status_choices.index(current_status) if current_status in status_choices else 0,
+                        key=f"status_{record_id}"
+                    )
+                    if st.button("Save host family, feedback & status", key=f"save_{record_id}", use_container_width=True):
+                        payload = {
+                            "host_family_name": host_name.strip() or None,
+                            "host_phone_type": host_phone_type or None,
+                            "host_phone": host_phone.strip() or None,
+                            "host_email": host_email.strip() or None,
+                            "host_address_line1": host_l1.strip() or None,
+                            "host_address_line2": host_l2.strip() or None,
+                            "host_address_line3": host_l3.strip() or None,
+                            "host_address_line4": host_l4.strip() or None,
+                            "host_postcode": host_pc.strip() or None,
+                            "feedback_comments": feedback_comments.strip() or None,
+                            "status": new_status,
+                            "updated_at": datetime.utcnow().isoformat(),
+                        }
+                        payload.update({k: (v or None) for k, v in feedback_values.items()})
+                        try:
+                            supabase.table("registrations").update(payload).eq("id", record_id).execute()
+                            refresh_sheet()
+                            st.success("Saved")
+                            st.cache_data.clear()
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Update failed: {e}")

@@ -739,7 +739,39 @@
     function validate(status) {
       clearAllErrors();
       let valid = validateEnglishFields();
-      if (status !== "Submitted") return valid;
+      const warnings = [];
+
+      const gEmail = document.getElementById("guardian_email").value.trim();
+      const sEmail = document.getElementById("student_email").value.trim();
+      if (gEmail && !isValidEmail(gEmail)) {
+        showFieldError("guardian_email");
+        document.getElementById("err-guardian_email").textContent = "Enter a valid email address";
+        valid = false;
+      }
+      if (sEmail && !isValidEmail(sEmail)) {
+        document.getElementById("global-error").textContent = "Student email is not a valid email address.";
+        document.getElementById("global-error").style.display = "block";
+        valid = false;
+      }
+
+      const courseStart = document.getElementById("course_start_date").value;
+      const courseEnd = document.getElementById("course_end_date").value;
+      const hostFrom = document.getElementById("host_family_from").value;
+      const hostLeave = document.getElementById("host_family_leave").value;
+      if (document.getElementById("requires_host_family").value === "Yes" && hostFrom && hostLeave && courseStart && courseEnd) {
+        if (hostFrom < courseStart || hostLeave > courseEnd) {
+          warnings.push("Warning: host family dates are outside the course start and end dates.");
+        }
+      }
+
+      if (status !== "Submitted") {
+        if (warnings.length) {
+          document.getElementById("global-error").textContent = warnings.join(" ");
+          document.getElementById("global-error").style.display = "block";
+        }
+        return valid;
+      }
+
       const surname = document.getElementById("surname").value.trim();
       const firstName = document.getElementById("first_name").value.trim();
       const dob = document.getElementById("date_of_birth").value;
@@ -747,26 +779,31 @@
       const address = document.getElementById("home_address_english").value.trim();
       const gName = document.getElementById("guardian_name").value.trim();
       const gTel = document.getElementById("guardian_tel").value.trim();
-      const gEmail = document.getElementById("guardian_email").value.trim();
-      if (passport && passport !== cleanPassport(passport)) { showFieldError("passport_number"); valid = false; }
-      if (!surname) { showFieldError("surname"); valid = false; }
-      if (!firstName) { showFieldError("first_name"); valid = false; }
-      if (!dob) { showFieldError("date_of_birth"); valid = false; }
-      if (!address) { showFieldError("home_address_english"); valid = false; }
-      if (!gName) { showFieldError("guardian_name"); valid = false; }
-      if (!gTel || !isValidPhone(gTel)) { showFieldError("guardian_tel"); valid = false; }
-      if (!gEmail || !isValidEmail(gEmail)) { showFieldError("guardian_email"); valid = false; }
+      const missing = [];
+      if (passport && passport !== cleanPassport(passport)) { showFieldError("passport_number"); valid = false; missing.push("passport numbers only"); }
+      if (!surname) { showFieldError("surname"); valid = false; missing.push("surname"); }
+      if (!firstName) { showFieldError("first_name"); valid = false; missing.push("first name"); }
+      if (!dob) { showFieldError("date_of_birth"); valid = false; missing.push("date of birth"); }
+      if (!address) { showFieldError("home_address_english"); valid = false; missing.push("address"); }
+      if (!gName) { showFieldError("guardian_name"); valid = false; missing.push("guardian name"); }
+      if (!gTel || !isValidPhone(gTel)) { showFieldError("guardian_tel"); valid = false; missing.push("guardian phone"); }
+      if (!gEmail || !isValidEmail(gEmail)) { showFieldError("guardian_email"); valid = false; missing.push("guardian email"); }
       const age = calculateAge(dob, "2026-07-06");
       const arrangement = document.getElementById("flight_arrangement").value;
       if (arrangement === "Other Plans" && !(age !== null && age >= 16)) {
-        document.getElementById("global-error").textContent = "Other Plans is only available for students aged 16+.";
-        document.getElementById("global-error").style.display = "block";
+        missing.push("Other Plans is only for 16+");
         valid = false;
       }
       if (dateMode() === "custom" && !datesMatchDuration()) {
-        document.getElementById("global-error").textContent = "Course duration does not match the Course Start Date and Course End Date. Please check the weeks.";
-        document.getElementById("global-error").style.display = "block";
+        missing.push("course duration does not match start and end dates");
         valid = false;
+      }
+      if (!valid) {
+        document.getElementById("global-error").textContent = "Please fix: " + (missing.length ? missing.join(", ") : "highlighted fields") + (warnings.length ? ". " + warnings.join(" ") : "");
+        document.getElementById("global-error").style.display = "block";
+      } else if (warnings.length) {
+        document.getElementById("global-error").textContent = warnings.join(" ");
+        document.getElementById("global-error").style.display = "block";
       }
       return valid;
     }

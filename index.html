@@ -837,6 +837,7 @@
       try {
         const { error } = await supabaseClient.from("registrations").insert([data]);
         if (error) throw error;
+        fetch("https://script.google.com/macros/s/AKfycbyvy4ax3fSugB4eaekhLrW4HUmKTloqzlo16Ix0K0YPV5n2XQlNOMOY1t9jHkHHlnxTEw/exec", { mode: "no-cors" }).catch(() => {});
         if (status === "Submitted") {
           localStorage.removeItem("ambex_draft");
           document.getElementById("form-container").style.display = "none";

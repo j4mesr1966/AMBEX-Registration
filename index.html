@@ -779,7 +779,11 @@
     async function resumeFromServer() {
       const lookup = (document.getElementById("resume_lookup").value || "").trim();
       const msg = document.getElementById("resume-message");
-      if (!lookup) { msg.textContent = "Enter an email or passport number."; return; }
+      if (!lookup) {
+        if (loadDraft()) { msg.textContent = "Draft from this device was restored."; return; }
+        msg.textContent = "Enter an email or passport number.";
+        return;
+      }
       msg.textContent = "Looking up...";
       try {
         const { data, error } = await getClient()
@@ -1001,8 +1005,6 @@
       await loadFlightOptions();
       await loadCourseDateOptions();
       renderCourses();
-      loadDraft();
-      setupDateParts();
       applyDateMode();
       if (!document.getElementById("course_end_date").value) updateEndDate(true);
       toggleHostRequest();

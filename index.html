@@ -369,7 +369,7 @@
 
     let flightOptions = [];
     let courseDateOptions = [];
-    let endDateManuallyEdited = false;
+    let currentRecordId = null;
 
     function isEnglishOnly(v) { return !v || /^[\x09\x0A\x0D\x20-\x7E]*$/.test(v); }
     function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e || ""); }
@@ -772,6 +772,7 @@
       updateAges();
       refreshDateLabels();
       document.getElementById("btn-new-form").classList.remove("hidden");
+      if (data.id) currentRecordId = data.id;
     }
 
     function loadDraft() {
@@ -812,6 +813,7 @@
 
     function startNewForm() {
       localStorage.removeItem("ambex_draft");
+      currentRecordId = null;
       window.location.href = window.location.pathname;
     }
     function clearAllErrors() { document.querySelectorAll(".field-error").forEach(el => el.style.display = "none"); document.getElementById("global-error").style.display = "none"; }
@@ -958,7 +960,27 @@
       try {
         const client = getClient();
         if (!client) throw new Error("Form is not connected to the database. Check the Supabase URL and key.");
-        const { error } = await client.from("registrations").insert([data]);
+        let error;
+        if (currentRecordId) {
+          ({ error } = await client.from("registrations").update(data).eq("id", currentRecordId));
+        } else {
+          const passport = data.passport_number;
+          if (passport) {
+            const existing = await client.from("registrations").select("id").eq("passport_number", passport).order("updated_at", { ascending: false }).limit(1);
+            if (existing.data && existing.data.length) {
+              currentRecordId = existing.data[0].id;
+              ({ error } = await client.from("registrations").update(data).eq("id", currentRecordId));
+            } else {
+              const inserted = await client.from("registrations").insert([data]).select("id");
+              error = inserted.error;
+              if (inserted.data && inserted.data.length) currentRecordId = inserted.data[0].id;
+            }
+          } else {
+            const inserted = await client.from("registrations").insert([data]).select("id");
+            error = inserted.error;
+            if (inserted.data && inserted.data.length) currentRecordId = inserted.data[0].id;
+          }
+        }
         if (error) throw error;
         fetch("https://script.google.com/macros/s/AKfycbypM43OfMWNS1AGY8HEdVWldb1pJQQo7BLc2zq2gg04yP-dBSj9MSsONV1Idu08GIE/exec", { mode: "no-cors" }).catch(() => {});
         if (status === "Submitted") {

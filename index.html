@@ -259,7 +259,7 @@
       <label class="required">Join the Parent and Child Program?</label><span class="label-zh">是否參加親子課程？</span>
       <select id="parent_child_program"><option value="No">No</option><option value="Yes">Yes</option></select>
       <label class="required">Accompany the child but NOT join the program?</label><span class="label-zh">陪同孩子但不參加親子課程？</span>
-      <select id="accompany_not_program"><option value="Yes">Yes</option><option value="No">No</option></select>
+      <select id="accompany_not_program"><option value="No">No</option><option value="Yes">Yes</option></select>
     </div>
 
     <div class="card">
@@ -516,10 +516,10 @@
     function availableCourses() {
       const dob = document.getElementById("date_of_birth").value;
       const flight = document.getElementById("flight_out_date").value;
-      const age = calculateAge(dob, flight) ?? calculateAge(dob, start);
-      const groups = new Set(groupsForAge(age));
       const start = document.getElementById("course_start_date").value;
       const end = document.getElementById("course_end_date").value;
+      const age = calculateAge(dob, flight) ?? calculateAge(dob, start);
+      const groups = new Set(groupsForAge(age));
       if (birthdayInRange(dob, start, end, 17)) { groups.add("C"); groups.add("V"); }
       if (birthdayInRange(dob, start, end, 18)) { groups.add("V"); groups.add("G"); }
       if (!groups.size) return COURSES.filter(c => c.group === "OTHER");

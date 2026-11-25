@@ -646,10 +646,14 @@
     document.getElementById("btn-submit").addEventListener("click", () => submitForm("Submitted"));
 
     (async function start() {
+      // Always start blank for shared links. Drafts are only restored if the user explicitly continues.
+      if (!new URLSearchParams(window.location.search).has("continue")) {
+        localStorage.removeItem("ambex_draft");
+      }
       await loadFlightOptions();
       await loadCourseDateOptions();
       renderCourses();
-      loadDraft();
+      if (new URLSearchParams(window.location.search).has("continue")) loadDraft();
       applyDateMode();
       if (!document.getElementById("course_end_date").value) updateEndDate(true);
       toggleHostRequest();

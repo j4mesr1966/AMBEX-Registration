@@ -326,9 +326,11 @@
           if (current && Number(current) <= max) day.value = String(Number(current));
         }
         function sync() {
+          const y = year.value, m = month.value, d = day.value;
           fillDays();
-          if (!year.value || !month.value || !day.value) { hidden.value = ""; return; }
-          const iso = `${year.value}-${String(month.value).padStart(2,"0")}-${String(day.value).padStart(2,"0")}`;
+          if (d && Number(d) <= daysInMonth(y, m)) day.value = String(Number(d));
+          if (!y || !m || !day.value) { hidden.value = ""; updateAges(); renderCourses(); return; }
+          const iso = `${y}-${String(m).padStart(2,"0")}-${String(day.value).padStart(2,"0")}`;
           hidden.value = isValidDate(iso) ? iso : "";
           wrap.style.outline = hidden.value ? "" : "2px solid #e11d48";
           updateAges();
@@ -478,7 +480,9 @@
       const start = document.getElementById("course_start_date").value;
       const end = document.getElementById("course_end_date").value;
       const ageOnFlight = calculateAge(dob, flight);
-      document.getElementById("age-display").textContent = ageOnFlight === null ? "Age on flight date: —" : `Age on flight date: ${ageOnFlight}`;
+      document.getElementById("age-display").textContent = ageOnFlight === null
+        ? (dob && !flight ? "Set the flight out date to calculate age" : "Age on flight date: —")
+        : `Age on flight date: ${ageOnFlight}`;
       const warning = document.getElementById("age-warning");
       if (ageOnFlight !== null && ageOnFlight < 10) { warning.textContent = "Daddy English will contact you to discuss these requirements in more detail"; warning.classList.remove("hidden"); }
       else warning.classList.add("hidden");
@@ -1021,4 +1025,3 @@
   </script>
 </body>
 </html>
-f

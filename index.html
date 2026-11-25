@@ -36,6 +36,8 @@
     .success-screen { display:none; text-align:center; padding:60px 20px; }
     .hidden { display:none !important; }
     .hint { font-size:.8rem; color:var(--muted); margin-bottom:10px; }
+    .date-parts { display:grid; grid-template-columns:1fr 1.4fr 1.2fr; gap:8px; margin-bottom:6px; }
+    .date-parts select { margin-bottom:0; }
   </style>
 </head>
 <body>
@@ -74,7 +76,8 @@
 
       <label class="required">Date of Birth</label>
       <span class="label-zh">出生日期（僅限過去日期）</span>
-      <input type="date" id="date_of_birth" />
+      <div class="date-parts" data-for="date_of_birth" data-years="past"></div>
+      <input type="hidden" id="date_of_birth" />
       <div class="date-fmt" id="date_of_birth_fmt">—</div>
       <div class="field-error" id="err-date_of_birth">Date of birth is required and must be in the past</div>
 
@@ -104,11 +107,13 @@
       <select id="flight_standard"><option value="">Choose your own dates or select from the accompanied flights below.</option></select>
       <label class="required">Flight Out Date</label>
       <span class="label-zh">出境航班日期</span>
-      <input type="date" id="flight_out_date" />
+      <div class="date-parts" data-for="flight_out_date"></div>
+      <input type="hidden" id="flight_out_date" />
       <div class="date-fmt" id="flight_out_date_fmt">—</div>
       <label class="required">Flight Return Date</label>
       <span class="label-zh">回程航班日期</span>
-      <input type="date" id="flight_return_date" />
+      <div class="date-parts" data-for="flight_return_date"></div>
+      <input type="hidden" id="flight_return_date" />
       <div class="date-fmt" id="flight_return_date_fmt">—</div>
       <label>If not using the standard return</label>
       <span class="label-zh">若不使用標準回程</span>
@@ -120,7 +125,8 @@
       </select>
       <div id="custom-flight-wrap" class="hidden">
         <label>Outbound Flight Date</label><span class="label-zh">出境航班日期</span>
-        <input type="date" id="custom_outbound_date" />
+        <div class="date-parts" data-for="custom_outbound_date"></div>
+        <input type="hidden" id="custom_outbound_date" />
         <div class="date-fmt" id="custom_outbound_date_fmt">—</div>
         <label>Outbound Flight Number</label><span class="label-zh">出境航班號碼</span>
         <input type="text" id="custom_outbound_flight_number" placeholder="e.g. BA123" />
@@ -154,7 +160,8 @@
       <div class="row">
         <div>
           <label class="required">Course Start Date</label><span class="label-zh">課程開始日期</span>
-          <input type="date" id="course_start_date" value="2026-07-06" />
+          <div class="date-parts" data-for="course_start_date"></div>
+          <input type="hidden" id="course_start_date" value="2026-07-06" />
           <div class="date-fmt" id="course_start_date_fmt">—</div>
         </div>
         <div>
@@ -163,7 +170,8 @@
         </div>
       </div>
       <label>Course End Date</label><span class="label-zh">課程結束日期</span>
-      <input type="date" id="course_end_date" />
+      <div class="date-parts" data-for="course_end_date"></div>
+      <input type="hidden" id="course_end_date" />
       <div class="date-fmt" id="course_end_date_fmt">—</div>
       <p class="subtitle" id="end-hint">Default dates come from Daddy English Administration.</p>
       <div class="row">
@@ -200,9 +208,11 @@
       <select id="requires_host_family"><option value="Yes">Yes</option><option value="No">No</option></select>
       <div id="host-request-wrap">
         <label>Host family from date</label><span class="label-zh">寄宿開始日期</span>
-        <input type="date" id="host_family_from" /><div class="date-fmt" id="host_family_from_fmt">—</div>
+        <div class="date-parts" data-for="host_family_from"></div>
+        <input type="hidden" id="host_family_from" /><div class="date-fmt" id="host_family_from_fmt">—</div>
         <label>Host family leave date</label><span class="label-zh">寄宿結束日期</span>
-        <input type="date" id="host_family_leave" /><div class="date-fmt" id="host_family_leave_fmt">—</div>
+        <div class="date-parts" data-for="host_family_leave"></div>
+        <input type="hidden" id="host_family_leave" /><div class="date-fmt" id="host_family_leave_fmt">—</div>
         <label>Homestay pairing request (optional)</label><span class="label-zh">希望同住的同學（可選）</span>
         <input type="text" id="homestay_pairing" placeholder="e.g. CHING-HSIN LIN" />
         <label>Prefer a family with a pet?</label><span class="label-zh">希望寄宿家庭有寵物？</span>
@@ -284,6 +294,50 @@
       }
     });
     const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    function setupDateParts() {
+      const thisYear = new Date().getFullYear();
+      document.querySelectorAll(".date-parts").forEach(wrap => {
+        const id = wrap.dataset.for;
+        const hidden = document.getElementById(id);
+        if (!hidden) return;
+        const past = wrap.dataset.years === "past";
+        const yearStart = past ? thisYear : thisYear - 1;
+        const yearEnd = past ? 1940 : thisYear + 3;
+        const years = [];
+        if (past) { for (let y = yearStart; y >= yearEnd; y--) years.push(y); }
+        else { for (let y = yearStart; y <= yearEnd; y++) years.push(y); }
+        wrap.innerHTML = `
+          <select data-part="day" aria-label="Day"><option value="">Day</option>${Array.from({length:31},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join("")}</select>
+          <select data-part="month" aria-label="Month"><option value="">Month</option>${MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("")}</select>
+          <select data-part="year" aria-label="Year"><option value="">Year</option>${years.map(y=>`<option value="${y}">${y}</option>`).join("")}</select>
+        `;
+        const day = wrap.querySelector('[data-part="day"]');
+        const month = wrap.querySelector('[data-part="month"]');
+        const year = wrap.querySelector('[data-part="year"]');
+        function sync() {
+          if (!day.value || !month.value || !year.value) { hidden.value = ""; return; }
+          const iso = `${year.value}-${String(month.value).padStart(2,"0")}-${String(day.value).padStart(2,"0")}`;
+          if (isValidDate(iso)) {
+            hidden.value = iso;
+            wrap.style.outline = "";
+          } else {
+            hidden.value = "";
+            wrap.style.outline = "2px solid #e11d48";
+          }
+          hidden.dispatchEvent(new Event("change"));
+        }
+        day.addEventListener("change", sync);
+        month.addEventListener("change", sync);
+        year.addEventListener("change", sync);
+        if (hidden.value && isValidDate(hidden.value)) {
+          const [y, m, d] = hidden.value.split("-");
+          year.value = String(Number(y));
+          month.value = String(Number(m));
+          day.value = String(Number(d));
+        }
+      });
+    }
 
     const COURSES = [
       { name: "C-2.20 (20 lessons) - 10-16 - English with full activity schedule", group: "C" },
@@ -487,8 +541,9 @@
       const el = document.getElementById(id);
       if (!el) return;
       el.addEventListener("blur", () => {
-        if (!el.value) return;
-        if (!isValidDate(el.value)) {
+        const badInput = el.validity && el.validity.badInput;
+        if (!el.value && !badInput) return;
+        if (badInput || (el.value && !isValidDate(el.value))) {
           el.value = "";
           el.style.borderColor = "#e11d48";
           let err = document.getElementById("err-" + id);
@@ -881,10 +936,12 @@
     document.getElementById("btn-submit").addEventListener("click", () => submitForm("Submitted"));
 
     (async function start() {
+      setupDateParts();
       await loadFlightOptions();
       await loadCourseDateOptions();
       renderCourses();
       loadDraft();
+      setupDateParts();
       applyDateMode();
       if (!document.getElementById("course_end_date").value) updateEndDate(true);
       toggleHostRequest();

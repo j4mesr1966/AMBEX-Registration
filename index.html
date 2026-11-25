@@ -276,8 +276,8 @@
   </div>
 
   <script>
-    const SUPABASE_URL = "https://bwhkccfwzsvjtsaqvhyy.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_LdjLR-FIesLKwuqtQzHDpg_C-OIdGgg";
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
     let supabaseClient = null;
     function getClient() {
       if (supabaseClient) return supabaseClient;
@@ -856,19 +856,16 @@
       return valid;
     }
     function getFormData(status) {
-      return {
+      const data = {
         surname: document.getElementById("surname").value.trim().toUpperCase(),
         first_name: document.getElementById("first_name").value.trim().toUpperCase(),
         english_nickname: document.getElementById("english_nickname").value.trim() || null,
-        date_of_birth: document.getElementById("date_of_birth").value || null,
         passport_number: (document.getElementById("passport_number").value || "").trim().toUpperCase() || null,
         gender: document.getElementById("gender").value,
         nationality: document.getElementById("nationality").value.trim() || null,
         course_type: selectedCourses().join(" | ") || null,
         course_other: document.getElementById("course_other").value.trim() || null,
-        course_start_date: document.getElementById("course_start_date").value || null,
         duration_weeks: parseInt(document.getElementById("duration_weeks").value) || null,
-        course_end_date: document.getElementById("course_end_date").value || null,
         age_at_start: document.getElementById("age_at_start").value || null,
         age_at_end: document.getElementById("age_at_end").value || null,
         student_tel: document.getElementById("student_tel").value.trim() || null,
@@ -877,8 +874,6 @@
         permission_anglo_media: document.getElementById("permission_anglo_media").value,
         permission_ambex_outing: document.getElementById("permission_ambex_outing").value,
         requires_host_family: document.getElementById("requires_host_family").value,
-        host_family_from: document.getElementById("host_family_from").value || null,
-        host_family_leave: document.getElementById("host_family_leave").value || null,
         homestay_pairing: document.getElementById("homestay_pairing").value.trim() || null,
         host_family_pet: document.getElementById("host_family_pet").value,
         allergies: document.getElementById("allergies").value.trim() || null,
@@ -896,10 +891,7 @@
         parent_child_program: document.getElementById("parent_child_program").value,
         accompany_not_program: document.getElementById("accompany_not_program").value,
         flight_option_id: document.getElementById("flight_standard").value || null,
-        flight_out_date: document.getElementById("flight_out_date").value || null,
-        flight_return_date: document.getElementById("flight_return_date").value || null,
         flight_arrangement: document.getElementById("flight_arrangement").value || null,
-        custom_outbound_date: document.getElementById("custom_outbound_date").value || null,
         custom_outbound_flight_number: document.getElementById("custom_outbound_flight_number").value.trim() || null,
         other_plans_notes: document.getElementById("other_plans_notes").value.trim() || null,
         notes: document.getElementById("notes").value.trim() || null,
@@ -907,6 +899,11 @@
         updated_at: new Date().toISOString(),
         submitted_at: status === "Submitted" ? new Date().toISOString() : null
       };
+      ["date_of_birth","course_start_date","course_end_date","flight_out_date","flight_return_date","custom_outbound_date","host_family_from","host_family_leave"].forEach(id => {
+        const value = document.getElementById(id).value;
+        if (value) data[id] = value;
+      });
+      return data;
     }
     async function submitForm(status) {
       if (!validate(status)) {

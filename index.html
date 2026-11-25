@@ -483,7 +483,30 @@
       if (isNaN(d)) return false;
       return isoFromDate(d) === value;
     }
-
+    function guardDateField(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("blur", () => {
+        if (!el.value) return;
+        if (!isValidDate(el.value)) {
+          el.value = "";
+          el.style.borderColor = "#e11d48";
+          let err = document.getElementById("err-" + id);
+          if (!err) {
+            err = document.createElement("div");
+            err.id = "err-" + id;
+            err.className = "field-error";
+            el.insertAdjacentElement("afterend", err);
+          }
+          err.textContent = "That is not a valid date. Please choose a real date.";
+          err.style.display = "block";
+        } else {
+          el.style.borderColor = "";
+          const err = document.getElementById("err-" + id);
+          if (err && err.textContent.indexOf("valid date") !== -1) err.style.display = "none";
+        }
+      });
+    }
     function validateDates() {
       const dateFields = [
         ["date_of_birth", "Date of Birth"],

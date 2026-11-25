@@ -44,6 +44,17 @@
     <p class="subtitle">Please use English characters only, except in Notes.<br><span class="zh">除備註外，請使用英文字母填寫。</span></p>
     <div id="global-error" class="error-box"></div>
 
+    <div class="card" id="resume-card">
+      <h2>Continue a saved form</h2>
+      <span class="zh">繼續已儲存的表格</span>
+      <p class="hint">If you started on another device, enter the email or passport number you used. On this device a saved draft loads automatically.</p>
+      <label>Email or Passport number</label>
+      <input type="text" id="resume_lookup" placeholder="email or passport" />
+      <button type="button" class="btn btn-secondary" id="btn-resume" style="margin-top:8px;">Resume</button>
+      <div id="resume-message" class="hint"></div>
+      <button type="button" class="btn btn-secondary hidden" id="btn-new-form" style="margin-top:8px;">Start a new form</button>
+    </div>
+
     <div class="card">
       <h2>1. Core Identity</h2>
       <span class="zh">基本資料</span>
@@ -71,8 +82,8 @@
         <div>
           <label>Passport Number</label>
           <span class="label-zh">護照號碼</span>
-          <input type="text" id="passport_number" inputmode="numeric" placeholder="Numbers only" />
-          <div class="field-error" id="err-passport_number">Only numbers allowed</div>
+          <input type="text" id="passport_number" placeholder="e.g. 31234567 or D12345678" />
+          <div class="field-error" id="err-passport_number"></div>
         </div>
         <div>
           <label class="required">Gender</label>
@@ -252,9 +263,23 @@
   </div>
 
   <script>
-    const SUPABASE_URL = "https://bwhkccfwzsvjtsaqvhyy.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_LdjLR-FIesLKwuqtQzHDpg_C-OIdGgg";
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+    let supabaseClient = null;
+    try {
+      if (window.supabase && SUPABASE_URL.startsWith("http")) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    window.addEventListener("error", function (ev) {
+      const box = document.getElementById("global-error");
+      if (box) {
+        box.textContent = "Script error: " + (ev.message || "unknown") + (ev.filename ? " at " + ev.filename + ":" + ev.lineno : "");
+        box.style.display = "block";
+      }
+    });
     const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
     const COURSES = [
@@ -329,6 +354,39 @@
       if (age === 16) return ["C", "V", "IELTS"];
       if (age === 17) return ["V", "IELTS"];
       return ["G", "SPECIALIST"];
+    }
+
+    function checkPassportWarning() {
+      const el = document.getElementById("passport_number");
+      const err = document.getElementById("err-passport_number");
+      const value = (el.value || "").trim().toUpperCase();
+      const nationality = (document.getElementById("nationality").value || "").trim().toLowerCase();
+      let warning = "";
+
+      if (value.length > 9) {
+        warning = "Warning: passport number has more than 9 characters.";
+      } else if (nationality === "taiwanese" && value) {
+        if (!/^[3DFG]/.test(value)) {
+          warning = "Warning: Taiwanese passport should start with 3, D, F or G.";
+        } else if (value.startsWith("3")) {
+          if (!/^3\d{7}$/.test(value)) {
+            warning = "Warning: Taiwanese passport starting with 3 should be exactly 8 numbers.";
+          }
+        } else if (/^[DFG]/.test(value)) {
+          if (!/^[DFG]\d{8}$/.test(value)) {
+            warning = "Warning: Taiwanese passport starting with D, F or G should be 9 characters (letter + 8 numbers).";
+          }
+        }
+      }
+
+      if (warning) {
+        err.textContent = warning;
+        err.style.display = "block";
+        err.style.color = "#856404";
+      } else {
+        err.style.display = "none";
+      }
+      return warning;
     }
 
     function checkEnglishLive(el) {
@@ -497,14 +555,72 @@
 
     const FIELDS = ["surname","first_name","english_nickname","date_of_birth","passport_number","gender","nationality","course_type","course_other","course_start_date","duration_weeks","course_end_date","age_at_start","age_at_end","student_tel","student_email","permission_unsupervised","permission_anglo_media","permission_ambex_outing","requires_host_family","host_family_from","host_family_leave","homestay_pairing","host_family_pet","allergies","medical_issues","dietary_requirements","learning_disabilities","medications","home_address_english","guardian_name","next_of_kin_relationship","guardian_tel","guardian_email","guardian_line_id","guardian_speaks_english","parent_child_program","accompany_not_program","flight_out_date","flight_return_date","flight_arrangement","custom_outbound_date","custom_outbound_flight_number","other_plans_notes","notes"];
     function saveDraftLocally() { const data = {}; FIELDS.forEach(id => { const el = document.getElementById(id); if (el) data[id] = el.value; }); data.date_mode = dateMode(); localStorage.setItem("ambex_draft", JSON.stringify(data)); }
+    function applyDraftData(data) {
+      FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && data[id] !== undefined && data[id] !== null) el.value = data[id];
+      });
+      if (data.date_mode) {
+        const modeEl = document.querySelector(`input[name="date_mode"][value="${data.date_mode}"]`);
+        if (modeEl) modeEl.checked = true;
+      }
+      renderCourses();
+      applyDateMode();
+      toggleHostRequest();
+      updateFlightArrangementUI();
+      updateAges();
+      refreshDateLabels();
+      document.getElementById("btn-new-form").classList.remove("hidden");
+    }
+
     function loadDraft() {
-      const raw = localStorage.getItem("ambex_draft"); if (!raw) return;
+      const raw = localStorage.getItem("ambex_draft");
+      if (!raw) return false;
       try {
-        const data = JSON.parse(raw);
-        FIELDS.forEach(id => { const el = document.getElementById(id); if (el && data[id] !== undefined) el.value = data[id]; });
-        if (data.date_mode) { const modeEl = document.querySelector(`input[name="date_mode"][value="${data.date_mode}"]`); if (modeEl) modeEl.checked = true; }
-        renderCourses(); applyDateMode(); toggleHostRequest(); updateFlightArrangementUI();
-      } catch (e) {}
+        applyDraftData(JSON.parse(raw));
+        document.getElementById("resume-message").textContent = "A saved draft on this device was restored.";
+        return true;
+      } catch (e) { return false; }
+    }
+
+    async function resumeFromServer() {
+      const lookup = (document.getElementById("resume_lookup").value || "").trim();
+      const msg = document.getElementById("resume-message");
+      if (!lookup) { msg.textContent = "Enter an email or passport number."; return; }
+      msg.textContent = "Looking up...";
+      try {
+        const { data, error } = await supabaseClient
+          .from("registrations")
+          .select("*")
+          .eq("status", "Draft")
+          .or(`guardian_email.ilike.${lookup},passport_number.ilike.${lookup}`)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        if (error) throw error;
+        if (!data || !data.length) { msg.textContent = "No draft found for that email or passport."; return; }
+        applyDraftData(data[0]);
+        msg.textContent = "Draft loaded. You can continue.";
+      } catch (e) {
+        msg.textContent = "Could not look up the draft. Please try again.";
+      }
+    }
+
+    function startNewForm() {
+      localStorage.removeItem("ambex_draft");
+      FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.type !== "select-one") el.value = "";
+      });
+      document.getElementById("nationality").value = "Taiwanese";
+      document.getElementById("gender").value = "Male";
+      document.getElementById("duration_weeks").value = "4";
+      document.getElementById("course_start_date").value = "2026-07-06";
+      document.getElementById("resume-message").textContent = "";
+      document.getElementById("btn-new-form").classList.add("hidden");
+      renderCourses();
+      applyDateMode();
+      updateAges();
+      refreshDateLabels();
     }
     function clearAllErrors() { document.querySelectorAll(".field-error").forEach(el => el.style.display = "none"); document.getElementById("global-error").style.display = "none"; }
     function showFieldError(id, show = true) { const el = document.getElementById("err-" + id); if (el) el.style.display = show ? "block" : "none"; }
@@ -533,10 +649,12 @@
       if (status !== "Submitted") { if (warnings.length) { document.getElementById("global-error").textContent = warnings.join(" "); document.getElementById("global-error").style.display = "block"; } return valid; }
       const missing = [];
       const surname = document.getElementById("surname").value.trim(), firstName = document.getElementById("first_name").value.trim();
+      const passportWarning = checkPassportWarning();
+      if (passportWarning) warnings.push(passportWarning);
       const passport = document.getElementById("passport_number").value, address = document.getElementById("home_address_english").value.trim();
       const gName = document.getElementById("guardian_name").value.trim(), gTel = document.getElementById("guardian_tel").value.trim();
       const flightOut = document.getElementById("flight_out_date").value;
-      if (passport && passport !== cleanPassport(passport)) { showFieldError("passport_number"); valid = false; missing.push("passport numbers only"); }
+      if (passport && passport !== cleanPassport(passport)) { /* allow letters for Taiwanese passports */ }
       if (!surname) { showFieldError("surname"); valid = false; missing.push("surname"); }
       if (!firstName) { showFieldError("first_name"); valid = false; missing.push("first name"); }
       if (!dob || dob >= today) { showFieldError("date_of_birth"); valid = false; missing.push("date of birth in the past"); }
@@ -556,7 +674,7 @@
         first_name: document.getElementById("first_name").value.trim().toUpperCase(),
         english_nickname: document.getElementById("english_nickname").value.trim() || null,
         date_of_birth: document.getElementById("date_of_birth").value || null,
-        passport_number: cleanPassport(document.getElementById("passport_number").value) || null,
+        passport_number: (document.getElementById("passport_number").value || "").trim().toUpperCase() || null,
         gender: document.getElementById("gender").value,
         nationality: document.getElementById("nationality").value.trim() || null,
         course_type: selectedCourses().join(" | ") || null,
@@ -640,26 +758,26 @@
     document.getElementById("flight_return_date").addEventListener("change", refreshDateLabels);
     document.getElementById("flight_arrangement").addEventListener("change", updateFlightArrangementUI);
     document.getElementById("custom_outbound_date").addEventListener("change", refreshDateLabels);
-    document.getElementById("passport_number").addEventListener("input", function() { showFieldError("passport_number", this.value && this.value !== cleanPassport(this.value)); });
+    document.getElementById("passport_number").addEventListener("input", checkPassportWarning);
+    document.getElementById("nationality").addEventListener("input", checkPassportWarning);
     document.querySelectorAll("#form-container input, #form-container select, #form-container textarea").forEach(el => { if (el.id === "notes") return; el.addEventListener("input", () => checkEnglishLive(el)); el.addEventListener("change", () => checkEnglishLive(el)); });
     document.getElementById("btn-draft").addEventListener("click", () => submitForm("Draft"));
     document.getElementById("btn-submit").addEventListener("click", () => submitForm("Submitted"));
 
     (async function start() {
-      // Always start blank for shared links. Drafts are only restored if the user explicitly continues.
-      if (!new URLSearchParams(window.location.search).has("continue")) {
-        localStorage.removeItem("ambex_draft");
-      }
       await loadFlightOptions();
       await loadCourseDateOptions();
       renderCourses();
-      if (new URLSearchParams(window.location.search).has("continue")) loadDraft();
+      loadDraft();
       applyDateMode();
       if (!document.getElementById("course_end_date").value) updateEndDate(true);
       toggleHostRequest();
       updateAges();
       refreshDateLabels();
     })();
+
+    document.getElementById("btn-resume").addEventListener("click", resumeFromServer);
+    document.getElementById("btn-new-form").addEventListener("click", startNewForm);
   </script>
 </body>
 </html>

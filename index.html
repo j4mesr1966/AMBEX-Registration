@@ -331,9 +331,9 @@
           const iso = `${year.value}-${String(month.value).padStart(2,"0")}-${String(day.value).padStart(2,"0")}`;
           hidden.value = isValidDate(iso) ? iso : "";
           wrap.style.outline = hidden.value ? "" : "2px solid #e11d48";
-          hidden.dispatchEvent(new Event("change", { bubbles: true }));
           updateAges();
           refreshDateLabels();
+          renderCourses();
         }
         year.addEventListener("change", sync);
         month.addEventListener("change", sync);
@@ -379,7 +379,9 @@
       if (isNaN(d)) return "—";
       return `${String(d.getDate()).padStart(2, "0")}-${MONTHS[d.getMonth()]}-${d.getFullYear()}`;
     }
-    function isoFromDate(d) { return d.toISOString().split("T")[0]; }
+    function isoFromDate(d) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
     function calculatedEndDate(startIso, weeks) {
       if (!startIso || !weeks) return "";
       const start = new Date(startIso + "T00:00:00");
@@ -510,7 +512,7 @@
     function availableCourses() {
       const dob = document.getElementById("date_of_birth").value;
       const flight = document.getElementById("flight_out_date").value;
-      const age = calculateAge(dob, flight);
+      const age = calculateAge(dob, flight) ?? calculateAge(dob, start);
       const groups = new Set(groupsForAge(age));
       const start = document.getElementById("course_start_date").value;
       const end = document.getElementById("course_end_date").value;
@@ -1019,3 +1021,4 @@
   </script>
 </body>
 </html>
+f

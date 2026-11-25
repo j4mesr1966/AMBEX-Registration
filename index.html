@@ -517,17 +517,30 @@
     }
     function toggleHostRequest() { document.getElementById("host-request-wrap").classList.toggle("hidden", document.getElementById("requires_host_family").value !== "Yes"); }
     async function loadFlightOptions() {
+      flightOptions = [];
+      if (!supabaseClient) {
+        populateStandardFlights();
+        return;
+      }
       try {
-        const { data, error } = await supabaseClient.from("flight_options").select("*").eq("is_active", true).order("outbound_date");
+        let { data, error } = await supabaseClient.from("flight_options").select("*").order("outbound_date");
         if (error) throw error;
-        flightOptions = data || [];
-      } catch (e) { flightOptions = []; }
+        flightOptions = (data || []).filter(f => f.is_active !== false);
+      } catch (e) {
+        flightOptions = [];
+      }
       populateStandardFlights();
     }
     function populateStandardFlights() {
       const sel = document.getElementById("flight_standard");
+      if (!sel) return;
       const current = sel.value;
-      sel.innerHTML = '<option value="">Choose a standard flight or pick dates below...</option>' + flightOptions.map(f => `<option value="${f.id}">${formatDateDisplay(f.outbound_date)} to ${formatDateDisplay(f.return_date)}</option>`).join("");
+      if (!flightOptions.length) {
+        sel.innerHTML = '<option value="">No standard flights set up yet — pick dates below</option>';
+        return;
+      }
+      sel.innerHTML = '<option value="">Choose a standard flight or pick dates below...</option>' +
+        flightOptions.map(f => `<option value="${f.id}">${formatDateDisplay(f.outbound_date)} to ${formatDateDisplay(f.return_date)}${f.outbound_flight_number ? " (" + f.outbound_flight_number + ")" : ""}</option>`).join("");
       if (current && flightOptions.some(f => f.id === current)) sel.value = current;
     }
     function applyStandardFlight() {

@@ -85,7 +85,7 @@
         <div>
           <label>Passport Number</label>
           <span class="label-zh">護照號碼</span>
-          <input type="text" id="passport_number" placeholder="e.g. 31234567 or D12345678" />
+          <input type="text" id="passport_number" placeholder="e.g. 31234567" />
           <div class="field-error" id="err-passport_number"></div>
         </div>
         <div>
@@ -795,8 +795,28 @@
     }
     function validate(status) {
       clearAllErrors();
-      let valid = validateEnglishFields();
+      let valid = true;
       const warnings = [];
+      const passport = (document.getElementById("passport_number").value || "").trim();
+
+      if (status !== "Submitted") {
+        if (!passport) {
+          showFieldError("passport_number");
+          document.getElementById("err-passport_number").textContent = "Passport number is required to save a draft";
+          document.getElementById("global-error").textContent = "Enter a passport number to save a draft.";
+          document.getElementById("global-error").style.display = "block";
+          return false;
+        }
+        const passportWarning = checkPassportWarning();
+        if (passportWarning) warnings.push(passportWarning);
+        if (warnings.length) {
+          document.getElementById("global-error").textContent = warnings.join(" ");
+          document.getElementById("global-error").style.display = "block";
+        }
+        return true;
+      }
+
+      valid = validateEnglishFields();
       const badDates = validateDates();
       if (badDates.length) {
         document.getElementById("global-error").textContent = "Please enter a valid date for: " + badDates.join(", ");
@@ -810,21 +830,22 @@
       const sEmail = document.getElementById("student_email").value.trim();
       if (gEmail && !isValidEmail(gEmail)) { showFieldError("guardian_email"); valid = false; }
       if (sEmail && !isValidEmail(sEmail)) { warnings.push("Student email is not valid."); valid = false; }
-      const courseStart = document.getElementById("course_start_date").value, courseEnd = document.getElementById("course_end_date").value;
-      const hostFrom = document.getElementById("host_family_from").value, hostLeave = document.getElementById("host_family_leave").value;
-      if (status !== "Submitted") { if (warnings.length) { document.getElementById("global-error").textContent = warnings.join(" "); document.getElementById("global-error").style.display = "block"; } return valid; }
       const missing = [];
       const surname = document.getElementById("surname").value.trim(), firstName = document.getElementById("first_name").value.trim();
       const passportWarning = checkPassportWarning();
       if (passportWarning) warnings.push(passportWarning);
-      const passport = document.getElementById("passport_number").value, address = document.getElementById("home_address_english").value.trim();
+      const address = document.getElementById("home_address_english").value.trim();
       const gName = document.getElementById("guardian_name").value.trim(), gTel = document.getElementById("guardian_tel").value.trim();
       const flightOut = document.getElementById("flight_out_date").value;
-      if (passport && passport !== cleanPassport(passport)) { /* allow letters for Taiwanese passports */ }
+      const courseStart = document.getElementById("course_start_date").value;
+      const courseEnd = document.getElementById("course_end_date").value;
       if (!surname) { showFieldError("surname"); valid = false; missing.push("surname"); }
       if (!firstName) { showFieldError("first_name"); valid = false; missing.push("first name"); }
       if (!dob || dob >= today) { showFieldError("date_of_birth"); valid = false; missing.push("date of birth in the past"); }
+      if (!passport) { showFieldError("passport_number"); valid = false; missing.push("passport number"); }
       if (!flightOut) { missing.push("flight out date"); valid = false; }
+      if (!courseStart) { missing.push("course start date"); valid = false; }
+      if (!courseEnd) { missing.push("course end date"); valid = false; }
       if (!address) { showFieldError("home_address_english"); valid = false; missing.push("address"); }
       if (!gName) { showFieldError("guardian_name"); valid = false; missing.push("guardian name"); }
       if (!gTel || !isValidPhone(gTel)) { showFieldError("guardian_tel"); valid = false; missing.push("guardian phone"); }

@@ -713,11 +713,45 @@
     }
 
     const FIELDS = ["surname","first_name","english_nickname","date_of_birth","passport_number","gender","nationality","course_type","course_other","course_start_date","duration_weeks","course_end_date","age_at_start","age_at_end","student_tel","student_email","permission_unsupervised","permission_anglo_media","permission_ambex_outing","requires_host_family","host_family_from","host_family_leave","homestay_pairing","host_family_pet","allergies","medical_issues","dietary_requirements","learning_disabilities","medications","home_address_english","guardian_name","next_of_kin_relationship","guardian_tel","guardian_email","guardian_line_id","guardian_speaks_english","parent_child_program","accompany_not_program","flight_out_date","flight_return_date","flight_arrangement","custom_outbound_date","custom_outbound_flight_number","other_plans_notes","notes"];
-    function saveDraftLocally() { const data = {}; FIELDS.forEach(id => { const el = document.getElementById(id); if (el) data[id] = el.value; }); data.date_mode = dateMode(); localStorage.setItem("ambex_draft", JSON.stringify(data)); }
+    function saveDraftLocally() {
+      const data = {};
+      FIELDS.forEach(id => { const el = document.getElementById(id); if (el) data[id] = el.value; });
+      data.date_mode = dateMode();
+      localStorage.setItem("ambex_draft", JSON.stringify(data));
+    }
+    function setDateParts(id, iso) {
+      const wrap = document.querySelector(`.date-parts[data-for="${id}"]`);
+      const hidden = document.getElementById(id);
+      if (!wrap || !hidden) return;
+      if (!iso) {
+        wrap.querySelectorAll("select").forEach(s => s.value = "");
+        hidden.value = "";
+        wrap.style.outline = "";
+        return;
+      }
+      const text = String(iso).slice(0, 10);
+      if (!isValidDate(text)) return;
+      const [y, m, d] = text.split("-");
+      const year = wrap.querySelector('[data-part="year"]');
+      const month = wrap.querySelector('[data-part="month"]');
+      const day = wrap.querySelector('[data-part="day"]');
+      if (year) year.value = String(Number(y));
+      if (month) month.value = String(Number(m));
+      if (year && month && day) {
+        const max = new Date(Number(y), Number(m), 0).getDate();
+        day.innerHTML = '<option value="">Day</option>' + Array.from({length: max}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join("");
+        day.value = String(Number(d));
+      }
+      hidden.value = text;
+      wrap.style.outline = "";
+    }
     function applyDraftData(data) {
       FIELDS.forEach(id => {
         const el = document.getElementById(id);
         if (el && data[id] !== undefined && data[id] !== null) el.value = data[id];
+      });
+      ["date_of_birth","course_start_date","course_end_date","flight_out_date","flight_return_date","custom_outbound_date","host_family_from","host_family_leave"].forEach(id => {
+        if (data[id]) setDateParts(id, data[id]);
       });
       if (data.date_mode) {
         const modeEl = document.querySelector(`input[name="date_mode"][value="${data.date_mode}"]`);

@@ -101,7 +101,7 @@
       <span class="zh">航班資料（請先填寫，以便計算年齡與可選課程）</span>
       <label>Use a standard flight (optional)</label>
       <span class="label-zh">選擇標準航班（可選）</span>
-      <select id="flight_standard"><option value="">Choose a standard flight or pick dates below...</option></select>
+      <select id="flight_standard"><option value="">Choose your own dates or select from the accompanied flights below.</option></select>
       <label class="required">Flight Out Date</label>
       <span class="label-zh">出境航班日期</span>
       <input type="date" id="flight_out_date" />
@@ -148,7 +148,7 @@
       </div>
       <label>Date selection</label>
       <span class="label-zh">日期選擇</span>
-      <label class="radio-row"><input type="radio" name="date_mode" value="default" checked /><span>Use a default course date<br><span class="label-zh">使用預設課程日期</span></span></label>
+      <label class="radio-row"><input type="radio" name="date_mode" value="default" checked /><span>Use default course dates<br><span class="label-zh">使用預設課程日期</span></span></label>
       <label class="radio-row"><input type="radio" name="date_mode" value="custom" /><span>Choose my own dates<br><span class="label-zh">自行選擇日期</span></span></label>
       <div id="default-dates-wrap"><label>Default course dates</label><span class="label-zh">預設課程日期（僅顯示航班日期之後）</span><div id="course_date_radios"></div></div>
       <div class="row">
@@ -178,11 +178,13 @@
       <label>Student email</label><span class="label-zh">學生電子郵件</span><input type="email" id="student_email" />
     </div>
 
-    <div class="card">
+    <div class="card" id="permissions-card">
       <h2>4. Permissions</h2><span class="zh">許可事項</span>
-      <label class="required">Permission to go out without supervision (14-16)</label>
-      <span class="label-zh">無監護外出許可（14-16歲）</span>
-      <select id="permission_unsupervised"><option value="YES">YES</option><option value="NO">NO</option><option value="Not applicable">Not applicable</option></select>
+      <div id="unsupervised-wrap">
+        <label class="required">Permission to go out without supervision (14-16)</label>
+        <span class="label-zh">無監護外出許可（14-16歲）</span>
+        <select id="permission_unsupervised"><option value="YES">YES</option><option value="NO">NO</option><option value="Not applicable">Not applicable</option></select>
+      </div>
       <label class="required">Permission for Anglo photography / video / social media</label>
       <span class="label-zh">同意 Anglo 使用攝影／影片／社群媒體</span>
       <select id="permission_anglo_media"><option value="YES">YES</option><option value="NO">NO</option></select>
@@ -204,7 +206,7 @@
         <label>Homestay pairing request (optional)</label><span class="label-zh">希望同住的同學（可選）</span>
         <input type="text" id="homestay_pairing" placeholder="e.g. CHING-HSIN LIN" />
         <label>Prefer a family with a pet?</label><span class="label-zh">希望寄宿家庭有寵物？</span>
-        <select id="host_family_pet"><option value="Yes">Yes</option><option value="No">No</option><option value="Don't care">Don't care</option></select>
+        <select id="host_family_pet"><option value="Don't care">Don't care</option><option value="Yes">Yes</option><option value="No">No</option></select>
       </div>
     </div>
 
@@ -221,6 +223,7 @@
       <h2>7. Home Address</h2><span class="zh">住家地址</span>
       <label class="required">Address (English characters only)</label>
       <span class="label-zh">英文地址</span>
+      <p class="hint">Use the Taiwan Post Office translation service: <a href="https://www.post.gov.tw/post/internet/SearchZone/index.jsp?ID=130112" target="_blank">post.gov.tw</a></p>
       <textarea id="home_address_english"></textarea>
       <div class="field-error" id="err-home_address_english">Address is required</div>
     </div>
@@ -244,7 +247,7 @@
     <div class="card">
       <h2>9. Parent & Child Program</h2><span class="zh">親子課程</span>
       <label class="required">Join the Parent and Child Program?</label><span class="label-zh">是否參加親子課程？</span>
-      <select id="parent_child_program"><option value="Yes">Yes</option><option value="No">No</option></select>
+      <select id="parent_child_program"><option value="No">No</option><option value="Yes">Yes</option></select>
       <label class="required">Accompany the child but NOT join the program?</label><span class="label-zh">陪同孩子但不參加親子課程？</span>
       <select id="accompany_not_program"><option value="Yes">Yes</option><option value="No">No</option></select>
     </div>
@@ -266,12 +269,12 @@
     const SUPABASE_URL = "YOUR_SUPABASE_URL";
     const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
     let supabaseClient = null;
-    try {
-      if (window.supabase && SUPABASE_URL.startsWith("http")) {
+    function getClient() {
+      if (supabaseClient) return supabaseClient;
+      if (window.supabase && SUPABASE_URL && SUPABASE_URL.startsWith("http")) {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
-    } catch (e) {
-      console.error(e);
+      return supabaseClient;
     }
     window.addEventListener("error", function (ev) {
       const box = document.getElementById("global-error");
@@ -301,7 +304,7 @@
     let courseDateOptions = [];
     let endDateManuallyEdited = false;
 
-    function isEnglishOnly(v) { return !v || /^[\x20-\x7E]*$/.test(v); }
+    function isEnglishOnly(v) { return !v || /^[\x09\x0A\x0D\x20-\x7E]*$/.test(v); }
     function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e || ""); }
     function isValidPhone(p) { return /^\+?[0-9\s\-]{7,20}$/.test(p || ""); }
     function cleanPassport(v) { return (v || "").replace(/[^0-9]/g, ""); }
@@ -416,6 +419,10 @@
       document.getElementById("age_at_end").value = ageYearsMonths(dob, end);
       const startAge = calculateAge(dob, start);
       document.getElementById("over18-card").classList.toggle("hidden", !(startAge !== null && startAge >= 18));
+      const permissions = document.getElementById("permissions-card");
+      if (permissions) permissions.classList.toggle("hidden", startAge !== null && startAge >= 18);
+      const unsupervised = document.getElementById("unsupervised-wrap");
+      if (unsupervised) unsupervised.classList.toggle("hidden", !(startAge !== null && startAge >= 14 && startAge <= 16));
       updateTransitionWarning();
     }
     function updateTransitionWarning() {
@@ -469,6 +476,48 @@
       if (start && weeks) document.getElementById("course_end_date").value = calculatedEndDate(start, weeks);
       updateAges(); refreshDateLabels(); renderCourses();
     }
+    function isValidDate(value) {
+      if (!value) return true;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      const d = new Date(value + "T00:00:00");
+      if (isNaN(d)) return false;
+      return isoFromDate(d) === value;
+    }
+
+    function validateDates() {
+      const dateFields = [
+        ["date_of_birth", "Date of Birth"],
+        ["flight_out_date", "Flight Out Date"],
+        ["flight_return_date", "Flight Return Date"],
+        ["custom_outbound_date", "Outbound Flight Date"],
+        ["course_start_date", "Course Start Date"],
+        ["course_end_date", "Course End Date"],
+        ["host_family_from", "Host family from date"],
+        ["host_family_leave", "Host family leave date"]
+      ];
+      const bad = [];
+      dateFields.forEach(([id, label]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const value = el.value;
+        if (value && !isValidDate(value)) {
+          bad.push(label);
+          el.style.borderColor = "#e11d48";
+          let err = document.getElementById("err-" + id);
+          if (!err) {
+            err = document.createElement("div");
+            err.id = "err-" + id;
+            err.className = "field-error";
+            el.insertAdjacentElement("afterend", err);
+          }
+          err.textContent = "Please enter a valid date";
+          err.style.display = "block";
+        } else if (el) {
+          el.style.borderColor = "";
+        }
+      });
+      return bad;
+    }
     function datesMatchDuration() {
       const start = document.getElementById("course_start_date").value, end = document.getElementById("course_end_date").value, weeks = parseInt(document.getElementById("duration_weeks").value) || 0;
       if (!start || !end || !weeks) return true;
@@ -476,7 +525,7 @@
     }
     async function loadCourseDateOptions() {
       try {
-        const { data, error } = await supabaseClient.from("course_date_options").select("*").eq("is_active", true).order("start_date");
+        const { data, error } = await getClient().from("course_date_options").select("*").eq("is_active", true).order("start_date");
         if (error) throw error;
         courseDateOptions = data || [];
       } catch (e) { courseDateOptions = []; }
@@ -518,12 +567,12 @@
     function toggleHostRequest() { document.getElementById("host-request-wrap").classList.toggle("hidden", document.getElementById("requires_host_family").value !== "Yes"); }
     async function loadFlightOptions() {
       flightOptions = [];
-      if (!supabaseClient) {
+      if (!getClient()) {
         populateStandardFlights();
         return;
       }
       try {
-        let { data, error } = await supabaseClient.from("flight_options").select("*").order("outbound_date");
+        let { data, error } = await getClient().from("flight_options").select("*").order("outbound_date");
         if (error) throw error;
         flightOptions = (data || []).filter(f => f.is_active !== false);
       } catch (e) {
@@ -539,7 +588,7 @@
         sel.innerHTML = '<option value="">No standard flights set up yet — pick dates below</option>';
         return;
       }
-      sel.innerHTML = '<option value="">Choose a standard flight or pick dates below...</option>' +
+      sel.innerHTML = '<option value="">Choose your own dates or select from the accompanied flights below.</option>' +
         flightOptions.map(f => `<option value="${f.id}">${formatDateDisplay(f.outbound_date)} to ${formatDateDisplay(f.return_date)}${f.outbound_flight_number ? " (" + f.outbound_flight_number + ")" : ""}</option>`).join("");
       if (current && flightOptions.some(f => f.id === current)) sel.value = current;
     }
@@ -550,8 +599,18 @@
       document.getElementById("flight_return_date").value = String(f.return_date).slice(0, 10);
       onFlightChange();
     }
+    function defaultHostDates() {
+      const out = document.getElementById("flight_out_date").value;
+      const ret = document.getElementById("flight_return_date").value;
+      const fromEl = document.getElementById("host_family_from");
+      const leaveEl = document.getElementById("host_family_leave");
+      if (fromEl && !fromEl.value && out) fromEl.value = out;
+      if (leaveEl && !leaveEl.value && ret) leaveEl.value = ret;
+      refreshDateLabels();
+    }
     function onFlightChange() {
       refreshDateLabels();
+      defaultHostDates();
       renderCourseDateOptions();
       updateAges();
       renderCourses();
@@ -602,7 +661,7 @@
       if (!lookup) { msg.textContent = "Enter an email or passport number."; return; }
       msg.textContent = "Looking up...";
       try {
-        const { data, error } = await supabaseClient
+        const { data, error } = await getClient()
           .from("registrations")
           .select("*")
           .eq("status", "Draft")
@@ -660,6 +719,12 @@
       clearAllErrors();
       let valid = validateEnglishFields();
       const warnings = [];
+      const badDates = validateDates();
+      if (badDates.length) {
+        document.getElementById("global-error").textContent = "Please enter a valid date for: " + badDates.join(", ");
+        document.getElementById("global-error").style.display = "block";
+        valid = false;
+      }
       const dob = document.getElementById("date_of_birth").value;
       const today = isoFromDate(new Date());
       if (dob && dob >= today) { showFieldError("date_of_birth"); valid = false; }
@@ -669,7 +734,6 @@
       if (sEmail && !isValidEmail(sEmail)) { warnings.push("Student email is not valid."); valid = false; }
       const courseStart = document.getElementById("course_start_date").value, courseEnd = document.getElementById("course_end_date").value;
       const hostFrom = document.getElementById("host_family_from").value, hostLeave = document.getElementById("host_family_leave").value;
-      if (document.getElementById("requires_host_family").value === "Yes" && hostFrom && hostLeave && courseStart && courseEnd && (hostFrom < courseStart || hostLeave > courseEnd)) warnings.push("Warning: host family dates are outside the course start and end dates.");
       if (status !== "Submitted") { if (warnings.length) { document.getElementById("global-error").textContent = warnings.join(" "); document.getElementById("global-error").style.display = "block"; } return valid; }
       const missing = [];
       const surname = document.getElementById("surname").value.trim(), firstName = document.getElementById("first_name").value.trim();
@@ -754,7 +818,9 @@
       const btn = status === "Submitted" ? document.getElementById("btn-submit") : document.getElementById("btn-draft");
       btn.disabled = true;
       try {
-        const { error } = await supabaseClient.from("registrations").insert([data]);
+        const client = getClient();
+        if (!client) throw new Error("Form is not connected to the database. Check the Supabase URL and key.");
+        const { error } = await client.from("registrations").insert([data]);
         if (error) throw error;
         fetch("https://script.google.com/macros/s/AKfycbyvy4ax3fSugB4eaekhLrW4HUmKTloqzlo16Ix0K0YPV5n2XQlNOMOY1t9jHkHHlnxTEw/exec", { mode: "no-cors" }).catch(() => {});
         if (status === "Submitted") {
@@ -762,7 +828,7 @@
           document.getElementById("form-container").style.display = "none";
           document.getElementById("footer-actions").style.display = "none";
           document.getElementById("success-screen").style.display = "block";
-        } else { saveDraftLocally(); alert("Draft saved. It will also appear in Daddy English Administration."); }
+        } else { saveDraftLocally(); alert("Draft saved."); }
       } catch (err) {
         document.getElementById("global-error").textContent = "Could not save: " + (err.message || JSON.stringify(err));
         document.getElementById("global-error").style.display = "block";

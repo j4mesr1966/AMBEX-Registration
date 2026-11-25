@@ -36,7 +36,7 @@
     .success-screen { display:none; text-align:center; padding:60px 20px; }
     .hidden { display:none !important; }
     .hint { font-size:.8rem; color:var(--muted); margin-bottom:10px; }
-    .date-parts { display:grid; grid-template-columns:1fr 1.4fr 1.2fr; gap:8px; margin-bottom:6px; }
+    .date-parts { display:grid; grid-template-columns:1.2fr 1.4fr 1fr; gap:8px; margin-bottom:6px; }
     .date-parts select { margin-bottom:0; }
   </style>
 </head>
@@ -308,33 +308,42 @@
         if (past) { for (let y = yearStart; y >= yearEnd; y--) years.push(y); }
         else { for (let y = yearStart; y <= yearEnd; y++) years.push(y); }
         wrap.innerHTML = `
-          <select data-part="day" aria-label="Day"><option value="">Day</option>${Array.from({length:31},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join("")}</select>
-          <select data-part="month" aria-label="Month"><option value="">Month</option>${MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("")}</select>
           <select data-part="year" aria-label="Year"><option value="">Year</option>${years.map(y=>`<option value="${y}">${y}</option>`).join("")}</select>
+          <select data-part="month" aria-label="Month"><option value="">Month</option>${MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("")}</select>
+          <select data-part="day" aria-label="Day"><option value="">Day</option></select>
         `;
-        const day = wrap.querySelector('[data-part="day"]');
-        const month = wrap.querySelector('[data-part="month"]');
         const year = wrap.querySelector('[data-part="year"]');
+        const month = wrap.querySelector('[data-part="month"]');
+        const day = wrap.querySelector('[data-part="day"]');
+        function daysInMonth(y, m) {
+          if (!y || !m) return 31;
+          return new Date(Number(y), Number(m), 0).getDate();
+        }
+        function fillDays() {
+          const max = daysInMonth(year.value, month.value);
+          const current = day.value;
+          day.innerHTML = '<option value="">Day</option>' + Array.from({length: max}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join("");
+          if (current && Number(current) <= max) day.value = String(Number(current));
+        }
         function sync() {
-          if (!day.value || !month.value || !year.value) { hidden.value = ""; return; }
+          fillDays();
+          if (!year.value || !month.value || !day.value) { hidden.value = ""; return; }
           const iso = `${year.value}-${String(month.value).padStart(2,"0")}-${String(day.value).padStart(2,"0")}`;
-          if (isValidDate(iso)) {
-            hidden.value = iso;
-            wrap.style.outline = "";
-          } else {
-            hidden.value = "";
-            wrap.style.outline = "2px solid #e11d48";
-          }
+          hidden.value = isValidDate(iso) ? iso : "";
+          wrap.style.outline = hidden.value ? "" : "2px solid #e11d48";
           hidden.dispatchEvent(new Event("change"));
         }
-        day.addEventListener("change", sync);
-        month.addEventListener("change", sync);
         year.addEventListener("change", sync);
+        month.addEventListener("change", sync);
+        day.addEventListener("change", sync);
         if (hidden.value && isValidDate(hidden.value)) {
           const [y, m, d] = hidden.value.split("-");
           year.value = String(Number(y));
           month.value = String(Number(m));
+          fillDays();
           day.value = String(Number(d));
+        } else {
+          fillDays();
         }
       });
     }

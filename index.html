@@ -623,7 +623,18 @@
       refreshDateLabels();
     }
     function clearAllErrors() { document.querySelectorAll(".field-error").forEach(el => el.style.display = "none"); document.getElementById("global-error").style.display = "none"; }
-    function showFieldError(id, show = true) { const el = document.getElementById("err-" + id); if (el) el.style.display = show ? "block" : "none"; }
+    function focusFirstError() {
+      const err = document.querySelector(".field-error[style*='block']");
+      if (!err) return;
+      const fieldId = err.id.replace(/^err-/, "");
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.scrollIntoView({ behavior: "smooth", block: "center" });
+        field.focus();
+      } else {
+        err.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
     function validateEnglishFields() {
       let valid = true;
       document.querySelectorAll("#form-container input, #form-container select, #form-container textarea").forEach(el => {
@@ -722,7 +733,10 @@
       };
     }
     async function submitForm(status) {
-      if (!validate(status)) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+      if (!validate(status)) {
+        focusFirstError();
+        return;
+      }
       const data = getFormData(status);
       const btn = status === "Submitted" ? document.getElementById("btn-submit") : document.getElementById("btn-draft");
       btn.disabled = true;
